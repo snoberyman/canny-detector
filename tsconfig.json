@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "es6",                         // ES6+ JavaScript output
+    "module": "commonjs",                     // CommonJS modules for Electron
+    "outDir": "./dist",                       // Output folder for compiled JS files
+    "rootDir": "./src",                       // Where your TypeScript files are
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*"]                    // Include all .ts files in the src folder
+}
