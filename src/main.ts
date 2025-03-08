@@ -36,9 +36,9 @@ app.whenReady().then(() => {
 
 // Handle request from frontend. communicate between main process and renderer process.
 ipcMain.handle("getHelloMessage", async () => { // Listen for messages from renderer and send back responses
-  return addon.helloWorld();
+  return "Hello from Main Process";
 });
 
-ipcMain.handle("fetchData", (): { data: string } => {
+ipcMain.handle("fetchData", async (): Promise<{ data: string }> => {
   return { data: "Some data from the main process" };
 });

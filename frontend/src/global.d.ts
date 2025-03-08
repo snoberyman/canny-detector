@@ -1,7 +1,7 @@
 declare global { 
   interface Window { 
     electronAPI: {
-      message: () => string;
+      message: () => Promise<string>;
       fetchData: () => Promise<{ data: string }>;     };
   }
 }
