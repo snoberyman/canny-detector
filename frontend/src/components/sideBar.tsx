@@ -1,3 +1,4 @@
+import { IpcRendererEvent } from "electron";
 import styled from "styled-components";
 import SideBtn from "./sideBtn";
 import { FaCamera, FaUpload } from "react-icons/fa6";
@@ -9,12 +10,12 @@ interface SidebarProps {
 }
 
 const SidebarContainer = styled.div<SidebarProps>`
-  background-color: ${(props) => props.bgColor || "#000"}; // fallback color
   height: 100%;
   width: 60px;
   position: fixed;
   left: 0;
   top: 0;
+  background-color: #004643;
 `;
 
 const SideBar = () => {
@@ -22,10 +23,13 @@ const SideBar = () => {
 
   useEffect(() => {
     // Listen for the reply from the main process
-    window.electronAPI.on("camera-status", (_: never, message: string) => {
-      console.log("Camera status from main process:", message); // Should log "Camera started"
-      setLatestMessage(message);
-    });
+    window.electronAPI.on(
+      "camera-status",
+      (_: IpcRendererEvent, message: string) => {
+        console.log("Camera status from main process:", message); // Should log "Camera started"
+        setLatestMessage(message);
+      }
+    );
 
     return () => {
       // Cleanup the listener when the component unmounts
@@ -35,10 +39,12 @@ const SideBar = () => {
 
   return (
     <>
-      <SidebarContainer bgColor="#004643">
+      <SidebarContainer>
         <SideBtn
           icon={<FaCamera />}
-          onClick={() => window.electronAPI.send("start-camera", "hi")}
+          onClick={() =>
+            window.electronAPI.send("start-camera", "start-camera")
+          }
         ></SideBtn>
         <SideBtn
           icon={<FaUpload />}

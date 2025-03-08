@@ -40,7 +40,9 @@ ipcMain.handle("getHelloMessage", async () => { // Listen for messages from rend
 });
 
 ipcMain.handle("fetchData", async (): Promise<{ data: string }> => { // handle is async. 
-  return { data: "Some data from the main process" };
+  // return { data: "Some data from the main process" };
+  const result = addon.helloWorld();
+  return { data: result };
 });
 
 ipcMain.on("start-camera", (event, data) => {  // listen to channel start-camera", when a new message arrives, call backfunction would be called
