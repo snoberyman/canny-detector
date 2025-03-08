@@ -24,7 +24,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Listen to the Electron main process
     const unsubscribe = listenToMainProcess(setLatestMessage);
 
-    // Cleanup listener when the component is unmounted
+    // Update the state with the message, tne cleanup listener when the component is unmounted
     return () => {
       unsubscribe();
     };
