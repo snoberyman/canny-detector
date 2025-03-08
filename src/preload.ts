@@ -1,12 +1,18 @@
 import { contextBridge, ipcRenderer } from "electron";
 
-// Expose the API to the renderer process. Communicate with the main process.
-contextBridge.exposeInMainWorld("electronAPI", { // Send messages to main and recieve responses
-  message: () => ipcRenderer.invoke("getHelloMessage"),
+// Expose the IPC API to the renderer process
+contextBridge.exposeInMainWorld("electronAPI", {
+  send: (channel: string, data: string) => ipcRenderer.send(channel, data),
+  message: () => ipcRenderer.invoke("getHelloMessage"), // async
   fetchData: () => ipcRenderer.invoke("fetchData"),
+  
+  // Expose event listener methods for communicating between renderer and main process
+  on: (channel: string, listener: (...args: any[]) => void) => { // listen for events from the main process by the renderer
+    ipcRenderer.on(channel, listener);
+  },
+
+  removeAllListeners: (channel: string) => { // clean all listneres (after listening)
+    ipcRenderer.removeAllListeners(channel);
+  },
 });
 
-
-// contextBridge:     safely expose specific functionality from the main process to the renderer process
-// exposeInMainWorld: allows to expose specific functionality to the global window object of the renderer process.
-// electronAPI:       the name of the object being exposed to the renderer process.
