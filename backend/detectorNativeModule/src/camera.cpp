@@ -55,8 +55,8 @@ std::atomic<bool> stopStreaming = false; // Use atomic for thread safety
 void StreamCamera()
 {
     cv::VideoCapture cap(0, cv::CAP_DSHOW); // Open the default camera
-    // cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-    // cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+    cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
 
     if (!cap.isOpened())
     {
@@ -74,19 +74,15 @@ void StreamCamera()
             continue;
         }
 
-        std::cout << "Frame captured successfully!" << std::endl;
+        // std::cout << "Frame captured successfully!" << std::endl;
 
-        // cv::resize(frame, frame, cv::Size(320, 240)); // Resize frame before encoding
-        // cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY); //  Convert to grayscale (optional, but reduces size further)
-        // Encode with lower JPEG quality
         std::vector<uchar> buf;
-        std::vector<int> params = {cv::IMWRITE_JPEG_QUALITY, 50}; // Reduce quality
-        cv::imencode(".jpg", frame, buf, params);
-        cv::Mat bufMat(buf);
+        std::vector<int> params = {cv::IMWRITE_JPEG_QUALITY, 90}; // JPG quality
+        cv::imencode(".jpg", frame, buf, params);                 // Encode image to JPG
 
+        std::string base64Frame = Base64Encode(buf.data(), buf.size());
         // Convert frame to Base64
-        std::string base64Frame = MatToBase64(bufMat);
-        std::cout << "Base64 Frame Size: " << base64Frame.length() << " bytes" << std::endl;
+        // std::cout << "Base64 Frame Size: " << base64Frame.length() << " bytes" << std::endl;
 
         // Call the JavaScript callback with the frame
         Napi::Env env = callbackRef.Env();
