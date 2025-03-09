@@ -31,6 +31,8 @@ app.whenReady().then(() => {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    minWidth: 1200,
+    minHeight: 800,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"), // Load Preload script
       nodeIntegration: false, // prevenet frontend from accessing Node APIs. (secuirty best practice)

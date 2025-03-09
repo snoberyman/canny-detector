@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useAppContext } from "../context/useAppContext";
+// import { useAppContext } from "../context/useAppContext";
 
 const MainDisplay = () => {
-  const { latestMessage } = useAppContext(); // Get the latest message
-  const [ws, setWs] = useState<WebSocket | null>(null);
+  // const { latestMessage } = useAppContext(); // Get the latest message
+  // const [ws, setWs] = useState<WebSocket | null>(null);
   const [videoStream, setVideoStream] = useState<string>("");
 
   useEffect(() => {
@@ -29,34 +29,35 @@ const MainDisplay = () => {
           setVideoStream(event.data); // Set the video stream as the image source
         };
 
-        socket.onclose = () => {
-          // when the webSocket connection is closed.
-          console.log("WebSocket disconnected. Attempting to reconnect...");
-          setTimeout(() => {
-            setWs(new WebSocket(`ws://localhost:${port}`));
-          }, 3000);
-        };
+        // socket.onclose = () => {
+        //   // when the webSocket connection is closed.
+        //   console.log("WebSocket disconnected. Attempting to reconnect...");
+        //   setTimeout(() => {
+        //     setWs(new WebSocket(`ws://localhost:${port}`));
+        //   }, 3000);
+        // };
 
-        setWs(socket);
+        // setWs(socket);
       });
     } else {
       console.error("window.electronAPI is undefined!");
     }
   }, []);
 
+  // Log videoStream whenever it changes
+  useEffect(() => {}, [videoStream]); // This effect runs when videoStream changes
+
   return (
     <>
-      <div style={{ flex: 1, padding: "20px" }}>
-        <h1>📩 Received Message: {ws?.CLOSED}</h1>
-        <p>{latestMessage}</p>
-      </div>
+      <div style={{ flex: 1, padding: "20px" }}></div>
       <div>
         {/* Display the video stream using the Base64 data */}
         {videoStream ? (
           <img
             style={{
-              width: "200px",
-              height: "300px",
+              width: "640",
+              height: "480",
+              margin: "auto",
             }}
             id="videoStream"
             src={`data:image/jpg;base64,${videoStream}`}
@@ -65,6 +66,8 @@ const MainDisplay = () => {
         ) : (
           <div>WebSocket Video Stream Here</div>
         )}
+        {/* <h1>📩 Received Message: {ws?.CLOSED}</h1>
+                <p>{latestMessage}</p> */}
       </div>
     </>
   );
