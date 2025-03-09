@@ -2,6 +2,10 @@ export interface ElectronAPI {
   send: (channel: string, data: unknown) => void; // You can define `data` more specifically if needed
   message: () => Promise<string>;
   fetchData: () => Promise<{ data: string }>;
+
+  onWsPort: (callback: (port: number) => void) => void;
+  // startStreaming: () => void;
+
   on: (channel: string, listener: (_:IpcRendererEvent, message:string) => void) => void // Use `message: string` here
   removeAllListeners: (channel: string) => void;
 }
