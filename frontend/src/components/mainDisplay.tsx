@@ -1,5 +1,29 @@
 import { useState, useEffect } from "react";
 import { useAppContext } from "../context/useAppContext";
+import { FaVideoSlash } from "react-icons/fa6";
+import styled from "styled-components";
+
+const VideoContainer = styled.div`
+  width: 640px;
+  height: 480px;
+  margin: auto;
+  background-color: #777;
+  position: relative;
+`;
+
+const PlayButtonContainer = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+`;
+
+const VideoImage = styled.img`
+  width: 640px;
+  height: 480px;
+  margin: auto;
+`;
 
 const MainDisplay = () => {
   const { cameraStatus } = useAppContext(); // Get the latest message
@@ -50,25 +74,18 @@ const MainDisplay = () => {
       <div style={{ flex: 1, padding: "20px" }}></div>
       <div>
         {/* Display the video stream using the Base64 data */}
-        {videoStream ? (
-          <img
-            style={{
-              width: "640",
-              height: "480",
-              margin: "auto",
-            }}
+        {videoStream && cameraStatus ? (
+          <VideoImage
             id="videoStream"
             src={`data:image/jpg;base64,${videoStream}`}
             alt="WebSocket video stream"
           />
         ) : (
-          <div
-            style={{
-              width: "640",
-              height: "480",
-              margin: "auto",
-            }}
-          ></div>
+          <VideoContainer>
+            <PlayButtonContainer>
+              <FaVideoSlash size={64} />
+            </PlayButtonContainer>
+          </VideoContainer>
         )}
         {/* <h1>📩 Received Message: {ws?.CLOSED}</h1>
                 <p>{latestMessage}</p> */}

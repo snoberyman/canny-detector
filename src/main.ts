@@ -35,6 +35,8 @@ app.whenReady().then(() => {
     height: 800,
     minWidth: 1200,
     minHeight: 800,
+    maxWidth: 1200,
+    maxHeight: 800,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"), // Load Preload script
       nodeIntegration: false, // prevenet frontend from accessing Node APIs. (secuirty best practice)
@@ -54,6 +56,7 @@ ipcMain.on("start-camera", (event, data) => {
 
   if (!data) {
     console.log("data from !data: ", data)
+    // addon.StopStreaming(() => {});
     wss!.clients.forEach((client) => {
       client.close(); // Close each WebSocket client connection
     });
