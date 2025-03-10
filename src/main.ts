@@ -17,6 +17,8 @@ const addon = require(path.join(
 let mainWindow: BrowserWindow | null = null;
 let wss: WebSocketServer | null = null;
 let wsPort: number = 0;
+let startCamera = false; // Start camera flag
+
 
 // determine the appopriate icon format based on OS type
 const iconPath =
@@ -43,49 +45,73 @@ app.whenReady().then(() => {
 
   mainWindow.loadURL("http://localhost:5173"); // Load React (Vite) frontend
 
-  // Start WebSocket server inside Electron
-  wss = new WebSocketServer({
-    port: 0,
-    maxPayload: 1024 * 1024, // Increase max payload size (default is 1MB)
-    clientTracking: true, // Track connected clients
-    perMessageDeflate: {
-      zlibDeflateOptions: { chunkSize: 1024 },
-      zlibInflateOptions: { chunkSize: 1024 },
-    },
-  }); 
-  wsPort = (wss.address() as WebSocket.AddressInfo).port; // Auto-assign an available port
-  console.log(`WebSocket server running on port: ${wsPort}`);
-
-  wss.on("connection", (ws: WebSocket, req) => { 
-    console.log("Client connected to WebSocket");
-    ws.send("Hello from WebSocket in Electron!");
-
-    const allowedHeaders = ["user-agent", "origin"]; // Adjust as needed
-
-    const filteredHeaders: Record<string, string> = Object.keys(req.headers)
-      .filter((key) => allowedHeaders.includes(key))
-      .reduce((obj, key) => {
-        obj[key] = req.headers[key] as string; // Explicitly cast to string
-        return obj;
-      }, {} as Record<string, string>); // Provide initial type
-
-    ws.send(JSON.stringify({ type: "headers", data: filteredHeaders }));
-
-    // Start camera streaming and receive frames
-    addon.startStreaming((frameBase64: string) => { 
-      // Relay the frame to the WebSocket client
-      ws.send(frameBase64);
-    });
-  });
-
-  // Send the WebSocket port to the Renderer process
-  mainWindow.webContents.once("did-finish-load", () => { // once entire frontend is loaded..
-    mainWindow!.webContents.send("ws-port", wsPort); // send message from the main process to the renderer process, passing the port of WebSocker server
-  });
-
   // Open the Developer Tools window. dev only
   mainWindow.webContents.openDevTools();
 });
+
+ipcMain.on("start-camera", (event, data) => {
+  // listen to channel start-camera", when a new message arrives, call backfunction would be called
+
+  if (!data) {
+    console.log("data from !data: ", data)
+    wss!.clients.forEach((client) => {
+      client.close(); // Close each WebSocket client connection
+    });
+    
+    wss!.close((err) => {
+      if (err) {
+        console.error("Error while closing WebSocket server:", err);
+      } else {
+        console.log("WebSocket server and all connections closed successfully");
+      }
+    });
+  }
+  else {
+    startCamera = true;
+    
+    // Start WebSocket server inside Electron
+    wss = new WebSocketServer({
+      port: 0,     // assign with n
+      maxPayload: 1024 * 1024, // Increase max payload size (default is 1MB)
+      clientTracking: true, // Track connected clients
+      perMessageDeflate: {
+        zlibDeflateOptions: { chunkSize: 1024 },
+        zlibInflateOptions: { chunkSize: 1024 },
+      },
+    }); 
+
+    wsPort = (wss.address() as WebSocket.AddressInfo).port; // Auto-assign an available port
+    console.log(`WebSocket server running on port: ${wsPort}`);
+
+    mainWindow?.webContents.send("ws-port", wsPort);   // send port slected to renderer
+    // event.sender.send("camera-status", startCamera);   // send camera status to renderer
+
+    wss.on("connection", (ws: WebSocket, req) => {  // start streaming frames when renderer connect to wss
+      // console.log("Client connected to WebSocket");
+      // ws.send("Hello from WebSocket in Electron!");
+  
+      // // For customizing headers
+      // const allowedHeaders = ["user-agent", "origin"]; 
+      // const filteredHeaders: Record<string, string> = Object.keys(req.headers)
+      //   .filter((key) => allowedHeaders.includes(key))
+      //   .reduce((obj, key) => {
+      //     obj[key] = req.headers[key] as string; // Explicitly cast to string
+      //     return obj;
+      //   }, {} as Record<string, string>); // Provide initial type
+      // ws.send(JSON.stringify({ type: "headers", data: filteredHeaders }));
+  
+      // Start camera streaming and receive frames
+      addon.startStreaming((frameBase64: string) => { 
+        // Relay the frame to the WebSocket client
+        ws.send(frameBase64);
+      });
+    });
+  }
+});
+
+
+
+
 
 // Handle request from frontend. communicate between main process and renderer process.
 ipcMain.handle("getHelloMessage", async () => {
@@ -100,9 +126,4 @@ ipcMain.handle("fetchData", async (): Promise<{ data: string }> => {
   // return { data: result };
 });
 
-ipcMain.on("start-camera", (event, data) => {
-  // listen to channel start-camera", when a new message arrives, call backfunction would be called
-  console.log("Received data from renderer:", data); // Log "hi"
-  // Simulate some processing and send a response back
-  event.sender.send("camera-status", "Camera started");
-});
+

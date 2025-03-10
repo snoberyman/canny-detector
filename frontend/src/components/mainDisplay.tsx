@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-// import { useAppContext } from "../context/useAppContext";
+import { useAppContext } from "../context/useAppContext";
 
 const MainDisplay = () => {
-  // const { latestMessage } = useAppContext(); // Get the latest message
-  // const [ws, setWs] = useState<WebSocket | null>(null);
+  const { cameraStatus } = useAppContext(); // Get the latest message
   const [videoStream, setVideoStream] = useState<string>("");
 
   useEffect(() => {
+    console.log("Camera status from MainDisplay", cameraStatus);
     // Ensure that the window.electronAPI from preload is available
-    if (window.electronAPI) {
+    if (window.electronAPI && cameraStatus) {
       window.electronAPI.onWsPort((port: number) => {
         // connect to websocket server from main. get server port number
         console.log("Connecting to WebSocket on port:", port);
@@ -29,20 +29,18 @@ const MainDisplay = () => {
           setVideoStream(event.data); // Set the video stream as the image source
         };
 
-        // socket.onclose = () => {
-        //   // when the webSocket connection is closed.
-        //   console.log("WebSocket disconnected. Attempting to reconnect...");
-        //   setTimeout(() => {
-        //     setWs(new WebSocket(`ws://localhost:${port}`));
-        //   }, 3000);
-        // };
-
-        // setWs(socket);
+        socket.onclose = () => {
+          // when the webSocket connection is closed.
+          console.log("WebSocket disconnected");
+          // setTimeout(() => {
+          //   setWs(new WebSocket(`ws://localhost:${port}`));
+          // }, 3000);
+        };
       });
     } else {
       console.error("window.electronAPI is undefined!");
     }
-  }, []);
+  }, [cameraStatus]);
 
   // Log videoStream whenever it changes
   useEffect(() => {}, [videoStream]); // This effect runs when videoStream changes
@@ -64,7 +62,13 @@ const MainDisplay = () => {
             alt="WebSocket video stream"
           />
         ) : (
-          <div>WebSocket Video Stream Here</div>
+          <div
+            style={{
+              width: "640",
+              height: "480",
+              margin: "auto",
+            }}
+          ></div>
         )}
         {/* <h1>📩 Received Message: {ws?.CLOSED}</h1>
                 <p>{latestMessage}</p> */}

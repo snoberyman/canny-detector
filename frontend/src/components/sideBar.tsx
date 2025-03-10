@@ -1,9 +1,10 @@
 import { IpcRendererEvent } from "electron";
 import styled from "styled-components";
 import SideBtn from "./sideBtn";
-import { FaCamera, FaUpload } from "react-icons/fa6";
+import { FaCamera, FaRecordVinyl } from "react-icons/fa6";
 import { useEffect } from "react";
 import { useAppContext } from "../context/useAppContext";
+import SideBtnDd from "./sideBtnDd";
 
 interface SidebarProps {
   bgColor?: string; // bgColor is optional and should be a string (e.g., hex color)
@@ -19,15 +20,18 @@ const SidebarContainer = styled.div<SidebarProps>`
 `;
 
 const SideBar = () => {
-  const { setLatestMessage } = useAppContext();
+  const { cameraStatus, setCameraStatus } = useAppContext();
 
   useEffect(() => {
     // Listen for the reply from the main process
     window.electronAPI.on(
       "camera-status",
-      (_: IpcRendererEvent, message: string) => {
+      (_: IpcRendererEvent, message: string | boolean) => {
         console.log("Camera status from main process:", message); // Should log "Camera started"
-        setLatestMessage(message);
+        if (typeof message === "boolean") {
+          setCameraStatus(message); // Update the state with the message
+          console.log("FE: Camera is starting.. ");
+        }
       }
     );
 
@@ -35,21 +39,23 @@ const SideBar = () => {
       // Cleanup the listener when the component unmounts
       window.electronAPI.removeAllListeners("camera-status");
     };
-  }, [setLatestMessage]);
+  }, [setCameraStatus]);
+
+  const handleToggleCamera = () => {
+    console.log(cameraStatus);
+    const newStatus = !cameraStatus; // Toggle the current status
+    setCameraStatus(newStatus); // Update the state
+    window.electronAPI.sendBool("start-camera", newStatus); // Send the new status (true or false)
+  };
 
   return (
     <>
       <SidebarContainer>
         <SideBtn
-          icon={<FaCamera />}
-          onClick={() =>
-            window.electronAPI.send("start-camera", "start-camera")
-          }
+          icon={<FaRecordVinyl />}
+          onClick={handleToggleCamera}
         ></SideBtn>
-        <SideBtn
-          icon={<FaUpload />}
-          onClick={() => alert("Upload Clicked!")}
-        ></SideBtn>
+        <SideBtnDd icon={<FaCamera />} onClick={() => alert("select camera")} />
       </SidebarContainer>
     </>
   );

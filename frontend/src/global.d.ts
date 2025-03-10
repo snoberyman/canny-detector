@@ -1,5 +1,6 @@
 export interface ElectronAPI {
-  send: (channel: string, data: unknown) => void; // You can define `data` more specifically if needed
+  send: (channel: string, data: string) => void; // You can define `data` more specifically if needed
+  sendBool: (channel: string, data: boolean) => void;
   message: () => Promise<string>;
   fetchData: () => Promise<{ data: string }>;
 
