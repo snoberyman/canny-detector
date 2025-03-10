@@ -16,8 +16,8 @@ std::string MatToBase64(const cv::Mat &frame)
     return Base64Encode(buf.data(), buf.size());
 }
 
-Napi::ThreadSafeFunction tsfn;           // Thread-safe function: provides APIs for threads to communicate with the addon's main thread to invoke JavaScript functions on their behalf.
-std::atomic<bool> stopStreaming = false; // Use atomic for thread safety (ensures no race conditions occur, if multiple threads modify the variable)
+Napi::ThreadSafeFunction tsfn;       // Thread-safe function: provides APIs for threads to communicate with the addon's main thread to invoke JavaScript functions on their behalf.
+std::atomic<bool> streaming = false; // Use atomic for thread safety (ensures no race conditions occur, if multiple threads modify the variable)
 
 // Camera streaming function
 void StreamCamera(Napi::Env *env)
@@ -43,7 +43,7 @@ void StreamCamera(Napi::Env *env)
         return;
     }
 
-    while (!stopStreaming)
+    while (!streaming)
     {
         cv::Mat frame;
         cap >> frame; // Capture a frame from the camera
@@ -87,7 +87,7 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
             std::cout << "ThreadSafeFunction finalized!" << std::endl;
         });
 
-    stopStreaming = false; // Reset and ensure any previous streaming operation is cleaned up.
+    streaming = false; // Reset and ensure any previous streaming operation is cleaned up.
 
     // Start the streaming in a separate thread
     std::thread streamThread(StreamCamera, &env); // Start a new thread to handle camera streaming
@@ -98,14 +98,16 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
 
 Napi::Value StopStreaming(const Napi::CallbackInfo &info)
 {
-    stopStreaming = true;
+    streaming = true;
     return Napi::String::New(info.Env(), "Streaming stopped!");
 }
 
 // Define Init function for the module
 Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
+    // Add the StartStreaming and StopStreaming functions to the exports object.
     exports.Set("startStreaming", Napi::Function::New(env, StartStreaming));
+    exports.Set("stopStreaming", Napi::Function::New(env, StopStreaming));
     return exports;
 }
 
