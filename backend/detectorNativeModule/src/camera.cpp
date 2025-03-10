@@ -3,47 +3,16 @@
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include <iostream>
-// #include <base64.h>
-
-static const std::string base64_chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "abcdefghijklmnopqrstuvwxyz"
-    "0123456789+/";
-
-// encode image to Base64
-std::string Base64Encode(const unsigned char *data, size_t len)
-{
-    std::string encoded;
-    int val = 0, valb = -6;
-    for (size_t i = 0; i < len; ++i)
-    {
-        val = (val << 8) + data[i];
-        valb += 8;
-        while (valb >= 0)
-        {
-            encoded.push_back(base64_chars[(val >> valb) & 0x3F]);
-            valb -= 6;
-        }
-    }
-    if (valb > -6)
-    {
-        encoded.push_back(base64_chars[((val << 8) >> (valb + 8)) & 0x3F]);
-    }
-    while (encoded.size() % 4)
-    {
-        encoded.push_back('=');
-    }
-    return encoded;
-}
+#include "base64_utils.h"
 
 // Helper function to convert cv::Mat to Base64
 std::string MatToBase64(const cv::Mat &frame)
 {
-    // Encode the image as JPEG
-    std::vector<uchar> buf;
-    cv::imencode(".jpg", frame, buf);
+    std::vector<uchar> buf;                                   // dynamic array of unsigned chars
+    std::vector<int> params = {cv::IMWRITE_JPEG_QUALITY, 90}; // JPG quality
+    cv::imencode(".jpg", frame, buf, params);                 // Encode and compress image to JPG, then store it in buf
 
-    // Convert the encoded image buffer to Base64
+    // Convert the encoded image buffer to Base64, using Base64Encode function
     return Base64Encode(buf.data(), buf.size());
 }
 
@@ -73,27 +42,16 @@ void StreamCamera()
             std::cerr << "Error: Cannot grab a frame" << std::endl;
             continue;
         }
-
         // std::cout << "Frame captured successfully!" << std::endl;
 
-        std::vector<uchar> buf;
-        std::vector<int> params = {cv::IMWRITE_JPEG_QUALITY, 90}; // JPG quality
-        cv::imencode(".jpg", frame, buf, params);                 // Encode image to JPG
-
-        std::string base64Frame = Base64Encode(buf.data(), buf.size());
         // Convert frame to Base64
-        // std::cout << "Base64 Frame Size: " << base64Frame.length() << " bytes" << std::endl;
+        std::string base64Frame = MatToBase64(frame);
 
         // Call the JavaScript callback with the frame
         Napi::Env env = callbackRef.Env();
         // Use ThreadSafeFunction to call the JavaScript callback
-        static int frameCounter = 0;
-        if (frameCounter % 3 == 0)
-        { // Only send every 3rd frame (reduces FPS)
-            tsfn.NonBlockingCall([base64Frame](Napi::Env env, Napi::Function jsCallback)
-                                 { jsCallback.Call({Napi::String::New(env, base64Frame)}); });
-        }
-        frameCounter++;
+        tsfn.NonBlockingCall([base64Frame](Napi::Env env, Napi::Function jsCallback)
+                             { jsCallback.Call({Napi::String::New(env, base64Frame)}); });
     }
 
     cap.release(); // Clean up
