@@ -1,4 +1,3 @@
-// base64_utils.cpp
 #include "base64_utils.h"
 
 std::string Base64Encode(const unsigned char *data, size_t len) // Base64: represent binary data in text format (ASCII)
