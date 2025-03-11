@@ -45,7 +45,7 @@ app.whenReady().then(() => {
     icon: iconPath, // Use the OS-specific icon
   });
 
-  mainWindow.loadURL("http://localhost:5175"); // Load React (Vite) frontend
+  mainWindow.loadURL("http://localhost:5173"); // Load React (Vite) frontend
 
   // Open the Developer Tools window. dev only
   mainWindow.webContents.openDevTools();
@@ -107,7 +107,6 @@ ipcMain.on("start-camera", (event, data) => {
     }); 
 
     wsPort = (wss.address() as WebSocket.AddressInfo).port; // Auto-assign an available port
-    console.log(`WebSocket server running on port: ${wsPort}`);
 
     mainWindow?.webContents.send("ws-port", wsPort);   // send port slected to renderer
     // event.sender.send("camera-status", startCamera);   // send camera status to renderer
@@ -125,14 +124,17 @@ ipcMain.on("start-camera", (event, data) => {
       //     return obj;
       //   }, {} as Record<string, string>); // Provide initial type
       // ws.send(JSON.stringify({ type: "headers", data: filteredHeaders }));
-  
+      console.log(`WebSocket server running on port: ${wsPort}`);
+
       // Start camera streaming and receive frames
-      addon.startStreaming((frameBase64: string) => { 
+      const test = addon.startStreaming((frameBase64: string) => { 
         // Relay the frame to the WebSocket client
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(frameBase64);
         }
       });
+
+      console.log("hereeere", test)
 
       ws.on("close", () => {
         console.log("Client disconnected.");
@@ -154,7 +156,6 @@ ipcMain.handle("getHelloMessage", async () => {
 ipcMain.handle("fetchData", async (): Promise<{ data: string }> => {
   // handle is async.
   return { data: "Some data from the main process" };
-  // const result = addon.helloWorld();
   // return { data: result };
 });
 

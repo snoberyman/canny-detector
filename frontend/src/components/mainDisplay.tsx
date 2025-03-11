@@ -65,8 +65,6 @@ const MainDisplay = () => {
           // }, 3000);
         };
       });
-    } else {
-      console.error("window.electronAPI is undefined!");
     }
   }, [cameraStatus]);
 

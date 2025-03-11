@@ -24,7 +24,7 @@ function App() {
         setLogMessages((prevMessages) => [
           ...prevMessages,
           `<div style="color:#ccc; display:inline"> >> ${new Date().toLocaleTimeString()}:</div> ${
-            data ? data : ""
+            data ? data.data : ""
           }`,
         ]);
       });

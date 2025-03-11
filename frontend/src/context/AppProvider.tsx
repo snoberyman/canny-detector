@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState } from "react";
 import { AppContext } from "./AppContext"; //  context to hold the state
 
 // Use the exposed `electronAPI` object to communicate with the main process
@@ -22,15 +22,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [statusMessage, setStatusMessage] = useState("");
   const [cameraStatus, setCameraStatus] = useState(false);
 
-  useEffect(() => {
-    // Listen to the Electron main process
-    // const unsubscribe = listenToMainProcess(setStatusMessage);
+  // useEffect(() => {
+  //   // Listen to the Electron main process
+  //   // const unsubscribe = listenToMainProcess(setStatusMessage);
 
-    // Update the state with the message, tne cleanup listener when the component is unmounted
-    return () => {
-      // unsubscribe();
-    };
-  }, []);
+  //   // Update the state with the message, tne cleanup listener when the component is unmounted
+  //   return () => {
+  //     // unsubscribe();
+  //   };
+  // }, []);
 
   return (
     <AppContext.Provider
