@@ -3,7 +3,15 @@
 #include <napi.h>
 #include <opencv2/opencv.hpp>
 #include <thread>
+#include <mutex>
+#include <atomic>
 #include "base64_utils.h"
+
+Napi::ThreadSafeFunction tsfn;       // Thread-safe function: provides APIs for threads to communicate with the addon's main thread to invoke JavaScript functions on their behalf.
+std::atomic<bool> streaming = false; // Use atomic for thread safety (ensures no race conditions occur, if multiple threads modify the variable)
+cv::VideoCapture cap;                // Open the default camera
+std::mutex cap_mutex;                // Mutex to protect access to `cap`
+std::thread streamThread;            // Worker thread
 
 int getAvailableCameraIndex()
 {
@@ -31,70 +39,93 @@ std::string MatToBase64(const cv::Mat &frame)
     return Base64Encode(buf.data(), buf.size());
 }
 
-Napi::ThreadSafeFunction tsfn;       // Thread-safe function: provides APIs for threads to communicate with the addon's main thread to invoke JavaScript functions on their behalf.
-std::atomic<bool> streaming = false; // Use atomic for thread safety (ensures no race conditions occur, if multiple threads modify the variable)
-cv::VideoCapture cap;                // Open the default camera
-
-// Camera streaming function
+/**
+ * @brief  Responsible for streaming frames to Electrons' node main process.
+ *         Uses a thread safe function to send each frame as base64 string, through a non-blocking JS callback approach.
+ *
+ * @param  env   JS environment variable
+ * @return void
+ *
+ */
 void StreamCamera(Napi::Env *env)
 {
-    if (cap.isOpened())
     {
-        cap.release();
-    }
+        std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to `cap`
 
-    int cameraIndex = getAvailableCameraIndex();
+        // int cameraIndex = getAvailableCameraIndex();
 
 #ifdef _WIN32
-    cap.open(cameraIndex, cv::CAP_DSHOW); // Windows (DirectShow)
+        cap.open(0, cv::CAP_DSHOW); // Windows (DirectShow)
 #elif __APPLE__
-    cap.open(0, cv::CAP_AVFOUNDATION); // macOS (AVFoundation)
+        cap.open(0, cv::CAP_AVFOUNDATION); // macOS (AVFoundation)
 #elif __linux__
-    cap.open(0, cv::CAP_V4L2); // Linux (Video4Linux2)
+        cap.open(0, cv::CAP_V4L2); // Linux (Video4Linux2)
 #else
-    cap.open(0, cv::CAP_ANY); // Use any available backend
+        cap.open(0, cv::CAP_ANY); // Use any available backend
 #endif
 
-    cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+        cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+        cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
 
-    if (!cap.isOpened())
-    {
-        std::cerr << "Error: Could not open the camera" << std::endl;
-        return;
+        if (!cap.isOpened())
+        {
+            std::cerr << "Error: Could not open the camera" << std::endl;
+            return;
+        }
     }
 
     while (streaming)
     {
         cv::Mat frame;
-        cap >> frame; // Capture a frame from the camera
+        {
+            std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to `cap`
+            cap >> frame;
+        }
+        // Capture a frame from the camera
         if (frame.empty())
         {
             std::cerr << "Error: Cannot grab a frame" << std::endl;
             continue;
         }
-        // std::cout << "Frame captured successfully!" << std::endl;
         // Convert frame to Base64
         std::string base64Frame = MatToBase64(frame);
-
         // tsfn: ensures that calls from a background thread to the JavaScript callback function are safe (Node is single-threaded)
         tsfn.NonBlockingCall([base64Frame](Napi::Env env, Napi::Function jsCallback)
                              { jsCallback.Call({Napi::String::New(env, base64Frame)}); });
     }
+
+    {
+        std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to cap
+        cap.release();                               // Release the camera
+    }
+
+    std::cout << "Worker thread stopped and cleaned up." << std::endl;
 }
 
+/**
+ * @brief  Responsible for initializing and starting the camera stream
+ *
+ * @param  info    JavaScript callback function, recieved from Electrons' node main process.
+ * @return string  return back a message indicating the status
+ *
+ */
 // NAPI function to start streaming from the camera
 Napi::String StartStreaming(const Napi::CallbackInfo &info)
 {
 
     Napi::Env env = info.Env(); // JS runtime environment
 
+    if (streaming)
+    {
+        return Napi::String::New(env, "Streaming is already running!");
+    }
     // check if JS functions is recieved
     if (!info[0].IsFunction())
     {
         Napi::TypeError::New(env, "Expected a function as the first argument").ThrowAsJavaScriptException();
         return Napi::String::New(env, "");
     }
+    streaming = true; // Reset and ensure any previous streaming operation is cleaned up.
     // Create the ThreadSafeFunction
     tsfn = Napi::ThreadSafeFunction::New( // safely call a JavaScript function from the cpp thread to run in the background, without blocking the main (node) thread
         env,                              // JavaScript environment
@@ -106,22 +137,44 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
             std::cout << "ThreadSafeFunction finalized!" << std::endl;
         });
 
-    streaming = true; // Reset and ensure any previous streaming operation is cleaned up.
-
     // Start the streaming in a separate thread
-    std::thread streamThread(StreamCamera, &env); // Start a new thread to handle camera streaming
-    streamThread.detach();                        // Detach the thread to run independently
+    streamThread = std::thread(StreamCamera, &env);
+    // streamThread.detach();                        // Detach the thread to run independently
 
     return Napi::String::New(env, "Streaming started!");
 }
 
+/**
+ * @brief  Responsible for stopping the camera stream and releasing the worker thread
+ *
+ * @param  info    JavaScript callback function, recieved from Electrons' node main process.
+ * @return string  return back a message indicating the status
+ *
+ */
 Napi::Value StopStreaming(const Napi::CallbackInfo &info)
 {
-    streaming = false;
-    if (cap.isOpened())
+    Napi::Env env = info.Env();
+
+    if (!streaming)
     {
-        cap.release(); // Clean up and release the camera
+        return Napi::String::New(env, "Streaming is not running!");
     }
+    streaming = false;
+
+    if (streamThread.joinable())
+    {
+        streamThread.join(); // Wait for the worker thread to finish
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to `cap`
+        if (cap.isOpened())
+        {
+            cap.release(); // Release the camera
+        }
+    }
+
+    tsfn.Release();
 
     return Napi::String::New(info.Env(), "Streaming stopped!");
 }
