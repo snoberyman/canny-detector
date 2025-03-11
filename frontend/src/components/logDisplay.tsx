@@ -9,7 +9,7 @@ const LogContainer = styled.div`
   z-index: -1;
   overflow-y: auto;
   padding: 10px;
-  background-color: #f5f5f5;
+  background-color: black;
   border: 1px solid #ccc;
   box-sizing: border-box;
   font-family: monospace;
@@ -17,17 +17,11 @@ const LogContainer = styled.div`
 
 const LogMessage = styled.div`
   padding: 5px;
-  margin-bottom: 8px;
-  background-color: #e8e8e8;
-  border-radius: 3px;
+  margin-bottom: 2px;
   font-size: 14px;
-  color: #333;
+  color: white;
   text-align: left;
   margin-left: 60px;
-
-  &:nth-child(even) {
-    background-color: #dcdcdc;
-  }
 `;
 
 interface ScrollableLogProps {
@@ -37,8 +31,8 @@ interface ScrollableLogProps {
 const LogDsipaly = ({ messages }: ScrollableLogProps) => {
   return (
     <LogContainer>
-      {messages.map((message, index) => (
-        <LogMessage key={index}>{message}</LogMessage>
+      {messages.map((msg, index) => (
+        <LogMessage key={index} dangerouslySetInnerHTML={{ __html: msg }} />
       ))}
     </LogContainer>
   );

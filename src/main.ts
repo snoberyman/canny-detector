@@ -45,32 +45,55 @@ app.whenReady().then(() => {
     icon: iconPath, // Use the OS-specific icon
   });
 
-  mainWindow.loadURL("http://localhost:5173"); // Load React (Vite) frontend
+  mainWindow.loadURL("http://localhost:5175"); // Load React (Vite) frontend
 
   // Open the Developer Tools window. dev only
   mainWindow.webContents.openDevTools();
 });
 
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
 ipcMain.on("start-camera", (event, data) => {
   // listen to channel start-camera", when a new message arrives, call backfunction would be called
 
-  if (!data) {
-    console.log("data from !data: ", data)
-    // addon.StopStreaming(() => {});
-    wss!.clients.forEach((client) => {
-      client.close(); // Close each WebSocket client connection
-    });
-    
-    wss!.close((err) => {
-      if (err) {
-        console.error("Error while closing WebSocket server:", err);
-      } else {
-        console.log("WebSocket server and all connections closed successfully");
-      }
-    });
-  }
+  if (!data) { // camera stopped
+    console.log("Stopping camera...");
+
+    addon.stopStreaming(); // release camera from the thread
+
+    if (wss) {
+      console.log("Closing WebSocket server...");
+
+      // Close all WebSocket client connections
+      wss.clients.forEach((client) => {
+        client.terminate(); // Forcefully terminate connections
+      });
+
+      // Close the WebSocket server
+      wss.close((err) => {
+        if (err) {
+          console.error("Error while closing WebSocket server:", err);
+        } else {
+          console.log("WebSocket server closed successfully.");
+        }
+      });
+
+      wss = null; // Remove reference to WebSocket server
+    }
+  } 
   else {
+    console.log("Starting camera...");
     startCamera = true;
+
+    if (wss) {
+      console.log("WebSocket server already running. Restarting...");
+      wss.close(); // Close existing WebSocket server before creating a new one
+      wss = null;
+    }
     
     // Start WebSocket server inside Electron
     wss = new WebSocketServer({
@@ -106,7 +129,13 @@ ipcMain.on("start-camera", (event, data) => {
       // Start camera streaming and receive frames
       addon.startStreaming((frameBase64: string) => { 
         // Relay the frame to the WebSocket client
-        ws.send(frameBase64);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(frameBase64);
+        }
+      });
+
+      ws.on("close", () => {
+        console.log("Client disconnected.");
       });
     });
   }

@@ -5,6 +5,21 @@
 #include <thread>
 #include "base64_utils.h"
 
+int getAvailableCameraIndex()
+{
+    for (int i = 0; i < 10; i++)
+    { // Try indexes from 0 to 9
+        cv::VideoCapture tempCap(i);
+        if (tempCap.isOpened())
+        {
+            tempCap.release();
+            std::cout << i;
+            return i; // Return the first available camera index
+        }
+    }
+    return -1; // No camera found
+}
+
 // Helper function to convert cv::Mat to Base64
 std::string MatToBase64(const cv::Mat &frame)
 {
@@ -18,14 +33,20 @@ std::string MatToBase64(const cv::Mat &frame)
 
 Napi::ThreadSafeFunction tsfn;       // Thread-safe function: provides APIs for threads to communicate with the addon's main thread to invoke JavaScript functions on their behalf.
 std::atomic<bool> streaming = false; // Use atomic for thread safety (ensures no race conditions occur, if multiple threads modify the variable)
+cv::VideoCapture cap;                // Open the default camera
 
 // Camera streaming function
 void StreamCamera(Napi::Env *env)
 {
+    if (cap.isOpened())
+    {
+        cap.release();
+    }
 
-    cv::VideoCapture cap; // Open the default camera
+    int cameraIndex = getAvailableCameraIndex();
+
 #ifdef _WIN32
-    cap.open(0, cv::CAP_DSHOW); // Windows (DirectShow)
+    cap.open(cameraIndex, cv::CAP_DSHOW); // Windows (DirectShow)
 #elif __APPLE__
     cap.open(0, cv::CAP_AVFOUNDATION); // macOS (AVFoundation)
 #elif __linux__
@@ -43,7 +64,7 @@ void StreamCamera(Napi::Env *env)
         return;
     }
 
-    while (!streaming)
+    while (streaming)
     {
         cv::Mat frame;
         cap >> frame; // Capture a frame from the camera
@@ -60,8 +81,6 @@ void StreamCamera(Napi::Env *env)
         tsfn.NonBlockingCall([base64Frame](Napi::Env env, Napi::Function jsCallback)
                              { jsCallback.Call({Napi::String::New(env, base64Frame)}); });
     }
-
-    cap.release(); // Clean up and release the camera
 }
 
 // NAPI function to start streaming from the camera
@@ -87,7 +106,7 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
             std::cout << "ThreadSafeFunction finalized!" << std::endl;
         });
 
-    streaming = false; // Reset and ensure any previous streaming operation is cleaned up.
+    streaming = true; // Reset and ensure any previous streaming operation is cleaned up.
 
     // Start the streaming in a separate thread
     std::thread streamThread(StreamCamera, &env); // Start a new thread to handle camera streaming
@@ -98,7 +117,12 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
 
 Napi::Value StopStreaming(const Napi::CallbackInfo &info)
 {
-    streaming = true;
+    streaming = false;
+    if (cap.isOpened())
+    {
+        cap.release(); // Clean up and release the camera
+    }
+
     return Napi::String::New(info.Env(), "Streaming stopped!");
 }
 

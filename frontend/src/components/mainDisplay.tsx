@@ -56,6 +56,10 @@ const MainDisplay = () => {
         socket.onclose = () => {
           // when the webSocket connection is closed.
           console.log("WebSocket disconnected");
+          setVideoStream("");
+          if (socket) {
+            socket.close();
+          }
           // setTimeout(() => {
           //   setWs(new WebSocket(`ws://localhost:${port}`));
           // }, 3000);

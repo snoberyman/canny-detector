@@ -23,7 +23,9 @@ function App() {
         setData(response);
         setLogMessages((prevMessages) => [
           ...prevMessages,
-          `${new Date().toLocaleTimeString()}: ${data ? data : ""}`,
+          `<div style="color:#ccc; display:inline"> >> ${new Date().toLocaleTimeString()}:</div> ${
+            data ? data : ""
+          }`,
         ]);
       });
     }
