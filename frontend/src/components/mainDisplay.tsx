@@ -30,11 +30,11 @@ const MainDisplay = () => {
   const [videoStream, setVideoStream] = useState<string>("");
 
   useEffect(() => {
-    console.log("Camera status from MainDisplay", cameraStatus);
     // console.log("Camera index from MainDisplay", cameraIndex);
     // Ensure that the window.electronAPI from preload is available
     if (window.electronAPI && cameraStatus) {
       window.electronAPI.onWsPort((port: number) => {
+        console.log("Camera status from MainDisplay", cameraStatus);
         // connect to websocket server from main. get server port number
         console.log("Connecting to WebSocket on port:", port);
 
@@ -67,6 +67,10 @@ const MainDisplay = () => {
         };
       });
     }
+    // Cleanup listener on unmount or cameraStatus change
+    return () => {
+      window.electronAPI.removeAllListeners("ws-port");
+    };
   }, [cameraStatus]);
 
   // Log videoStream whenever it changes

@@ -56,7 +56,7 @@ std::string MatToBase64(const cv::Mat &frame)
  * @return void
  *
  */
-void StreamCamera(Napi::Env *env, int index)
+void StreamCamera(Napi::Env *env) // , int index
 {
     {
         std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to `cap`
@@ -64,7 +64,7 @@ void StreamCamera(Napi::Env *env, int index)
         // int cameraIndex = getAvailableCameraIndex();
 
 #ifdef _WIN32
-        cap.open(index, cv::CAP_DSHOW); // Windows (DirectShow)
+        cap.open(0, cv::CAP_DSHOW); // Windows (DirectShow)
 #elif __APPLE__
         cap.open(index, cv::CAP_AVFOUNDATION); // macOS (AVFoundation)
 #elif __linux__
@@ -121,12 +121,12 @@ void StreamCamera(Napi::Env *env, int index)
 // NAPI function to start streaming from the camera
 Napi::String StartStreaming(const Napi::CallbackInfo &info)
 {
-
+    std::cout << "start cout: " << streaming;
     Napi::Env env = info.Env(); // JS runtime environment
 
     if (streaming)
     {
-        // return Napi::String::New(env, "Streaming is already running!");
+        return Napi::String::New(env, "Streaming is already running!");
     }
     // check if JS functions is recieved
     if (!info[0].IsFunction())
@@ -134,7 +134,7 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
         Napi::TypeError::New(env, "Expected a function as the first argument").ThrowAsJavaScriptException();
         return Napi::String::New(env, "");
     }
-    streaming = true; // Reset and ensure any previous streaming operation is cleaned up.
+    // Reset and ensure any previous streaming operation is cleaned up.
     // Create the ThreadSafeFunction
     tsfn = Napi::ThreadSafeFunction::New( // safely call a JavaScript function from the cpp thread to run in the background, without blocking the main (node) thread
         env,                              // JavaScript environment
@@ -143,13 +143,14 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
         0,                                // Unlimited queue
         1,                                // Only one thread will use this function
         [](Napi::Env) {                   // Finalizer to clean up resources
-            std::cout << "ThreadSafeFunction finalized!" << std::endl;
+            streaming = false;            // make sure streaming is set to false when finalizing the thread
+            std::cout << "ThreadSafeFunction finalized!" << streaming << std::endl;
         });
 
-    int index = info[1].As<Napi::Number>().Int32Value();
-
+    // int index = info[1].As<Napi::Number>().Int32Value();
+    streaming = true;
     // Start the streaming in a separate thread
-    streamThread = std::thread(StreamCamera, &env, index);
+    streamThread = std::thread(StreamCamera, &env); // index
     // streamThread.detach();                        // Detach the thread to run independently
 
     return Napi::String::New(env, "Streaming started!");
@@ -164,6 +165,7 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
  */
 Napi::Value StopStreaming(const Napi::CallbackInfo &info)
 {
+    std::cout << "stop cout: " << streaming;
     Napi::Env env = info.Env();
 
     if (!streaming)
@@ -171,7 +173,6 @@ Napi::Value StopStreaming(const Napi::CallbackInfo &info)
         return Napi::String::New(env, "Streaming is not running!");
     }
     streaming = false;
-
     if (streamThread.joinable())
     {
         streamThread.join(); // Wait for the worker thread to finish
@@ -187,7 +188,7 @@ Napi::Value StopStreaming(const Napi::CallbackInfo &info)
 
     tsfn.Release();
 
-    return Napi::String::New(info.Env(), "Streaming stopped!");
+    return Napi::String::New(env, "Streaming stopped!");
 }
 
 /**

@@ -66,7 +66,7 @@ ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
     console.log("Stopping camera...");
 
     status = addon.stopStreaming(); // release camera from the thread
-
+    startCamera = false;
     if (wss) {
       console.log("Closing WebSocket server...");
 
@@ -123,7 +123,7 @@ ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(frameBase64);
         }
-      }, cameraIndex);
+      });  // , cameraIndex
 
       console.log("hereeere", status);
 

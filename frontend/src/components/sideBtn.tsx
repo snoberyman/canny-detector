@@ -9,18 +9,7 @@ const Btn = styled.button<BtnProps>`
   align-items: center;
   margin: 10px auto;
   padding: 5px;
-  background-color: ${(props) =>
-    props.cameraIndex !== undefined &&
-    props.cameraIndex >= 0 &&
-    props.cameraIndex <= 9
-      ? "white"
-      : "gray"};
-  pointer-events: ${(props) =>
-    props.cameraIndex !== undefined &&
-    props.cameraIndex >= 0 &&
-    props.cameraIndex <= 9
-      ? ""
-      : "none"};
+
   color: black;
   border: none;
   border-radius: 2px;
@@ -52,3 +41,20 @@ const SideBtn = ({ icon, onClick, cameraIndex }: SideBtnProps) => {
 };
 
 export default SideBtn;
+
+//***
+//
+//   background-color: ${(props) =>
+// props.cameraIndex !== undefined &&
+// props.cameraIndex >= 0 &&
+// props.cameraIndex <= 9
+//   ? "white"
+//   : "gray"};
+// pointer-events: ${(props) =>
+// props.cameraIndex !== undefined &&
+// props.cameraIndex >= 0 &&
+// props.cameraIndex <= 9
+//   ? ""
+//   : "none"};
+//
+//  */
