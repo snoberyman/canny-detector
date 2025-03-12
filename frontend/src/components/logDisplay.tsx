@@ -28,7 +28,7 @@ interface ScrollableLogProps {
   messages: string[]; // Array of log messages
 }
 
-const LogDsipaly = ({ messages }: ScrollableLogProps) => {
+const LogDisplay = ({ messages }: ScrollableLogProps) => {
   return (
     <LogContainer>
       {messages.map((msg, index) => (
@@ -38,4 +38,4 @@ const LogDsipaly = ({ messages }: ScrollableLogProps) => {
   );
 };
 
-export default LogDsipaly;
+export default LogDisplay;

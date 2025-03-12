@@ -2,10 +2,12 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
 
 // Expose the IPC API to the renderer process
 contextBridge.exposeInMainWorld("electronAPI", {
-  fetchData: () => ipcRenderer.invoke("fetchData"),
+  startCamera: (channel: string, cameraStatus: boolean, cameraIndex: number) => ipcRenderer.send(channel, cameraStatus, cameraIndex),
+  fetchStatus: () => ipcRenderer.invoke("fetchStatus"),
+  fetchCams: () => ipcRenderer.invoke("fetchCams"), 
+
   send: (channel: string, data: string) => ipcRenderer.send(channel, data),
-  sendBool: (channel: string, data: boolean) => ipcRenderer.send(channel, data),
-  message: () => ipcRenderer.invoke("getHelloMessage"), // async
+  
   
   // startStreaming: () => ipcRenderer.send("start-streaming"),
 

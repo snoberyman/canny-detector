@@ -1,8 +1,10 @@
 export interface ElectronAPI {
   send: (channel: string, data: string) => void; // You can define `data` more specifically if needed
-  sendBool: (channel: string, data: boolean) => void;
-  message: () => Promise<string>;
-  fetchData: () => Promise<{ data: string }>;
+
+  startCamera: (channel: string, cameraStatus: boolean, cameraIndex: number) => void;
+  fetchStatus: () => Promise<{ status: string }>;
+  fetchCams: () => Promise<{ data: number[] }>;
+
 
   onWsPort: (callback: (port: number) => void) => void;
   // startStreaming: () => void;

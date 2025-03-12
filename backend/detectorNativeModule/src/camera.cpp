@@ -5,6 +5,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <vector>
 #include "base64_utils.h"
 
 Napi::ThreadSafeFunction tsfn;       // Thread-safe function: provides APIs for threads to communicate with the addon's main thread to invoke JavaScript functions on their behalf.
@@ -13,19 +14,27 @@ cv::VideoCapture cap;                // Open the default camera
 std::mutex cap_mutex;                // Mutex to protect access to `cap`
 std::thread streamThread;            // Worker thread
 
-int getAvailableCameraIndex()
+// Helper function that returns an array (vector) of available camera indexes
+std::vector<int> getAvailableCameraIndexes()
 {
-    for (int i = 0; i < 10; i++)
-    { // Try indexes from 0 to 9
-        cv::VideoCapture tempCap(i);
-        if (tempCap.isOpened())
+    std::vector<int> availableCameras;
+    int index = 0;
+    cv::VideoCapture tempCap;
+
+    // Keep attempting camera indexes until cv::VideoCapture fails to open
+    while (true)
+    {
+        tempCap.open(index); // Try to open the camera at the current index
+        if (!tempCap.isOpened())
         {
-            tempCap.release();
-            std::cout << i;
-            return i; // Return the first available camera index
+            break; // No more cameras available, exit the loop
         }
+        availableCameras.push_back(index); // Camera is available, add index to the list
+        tempCap.release();                 // Release the camera after testing
+        index++;                           // Increment to check the next camera index
     }
-    return -1; // No camera found
+
+    return availableCameras; // Return the vector of available camera indexes
 }
 
 // Helper function to convert cv::Mat to Base64
@@ -36,7 +45,7 @@ std::string MatToBase64(const cv::Mat &frame)
     cv::imencode(".jpg", frame, buf); // Encode and compress image to JPG, then store it in buf
 
     // Convert the encoded image buffer to Base64, using Base64Encode function
-    return Base64Encode(buf.data(), buf.size());
+    return base64_encode(buf.data(), buf.size());
 }
 
 /**
@@ -47,7 +56,7 @@ std::string MatToBase64(const cv::Mat &frame)
  * @return void
  *
  */
-void StreamCamera(Napi::Env *env)
+void StreamCamera(Napi::Env *env, int index)
 {
     {
         std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to `cap`
@@ -55,13 +64,13 @@ void StreamCamera(Napi::Env *env)
         // int cameraIndex = getAvailableCameraIndex();
 
 #ifdef _WIN32
-        cap.open(0, cv::CAP_DSHOW); // Windows (DirectShow)
+        cap.open(index, cv::CAP_DSHOW); // Windows (DirectShow)
 #elif __APPLE__
-        cap.open(0, cv::CAP_AVFOUNDATION); // macOS (AVFoundation)
+        cap.open(index, cv::CAP_AVFOUNDATION); // macOS (AVFoundation)
 #elif __linux__
-        cap.open(0, cv::CAP_V4L2); // Linux (Video4Linux2)
+        cap.open(index, cv::CAP_V4L2); // Linux (Video4Linux2)
 #else
-        cap.open(0, cv::CAP_ANY); // Use any available backend
+        cap.open(index, cv::CAP_ANY); // Use any available backend
 #endif
 
         cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
@@ -117,7 +126,7 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
 
     if (streaming)
     {
-        return Napi::String::New(env, "Streaming is already running!");
+        // return Napi::String::New(env, "Streaming is already running!");
     }
     // check if JS functions is recieved
     if (!info[0].IsFunction())
@@ -137,8 +146,10 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
             std::cout << "ThreadSafeFunction finalized!" << std::endl;
         });
 
+    int index = info[1].As<Napi::Number>().Int32Value();
+
     // Start the streaming in a separate thread
-    streamThread = std::thread(StreamCamera, &env);
+    streamThread = std::thread(StreamCamera, &env, index);
     // streamThread.detach();                        // Detach the thread to run independently
 
     return Napi::String::New(env, "Streaming started!");
@@ -179,12 +190,33 @@ Napi::Value StopStreaming(const Napi::CallbackInfo &info)
     return Napi::String::New(info.Env(), "Streaming stopped!");
 }
 
-// Define Init function for the module
-Napi::Object Init(Napi::Env env, Napi::Object exports)
+/**
+ * @brief  Responsible for getting indexes of avaialble cameras
+ *
+ * @param  none
+ * @return Array   return an array of integers for camera indexes
+ *
+ */
+Napi::Array GetAvailableCameraIndexes(const Napi::CallbackInfo &info)
 {
-    // Add the StartStreaming and StopStreaming functions to the exports object.
+    Napi::Env env = info.Env();
+    std::vector<int> cameraIndexes = getAvailableCameraIndexes(); // Fetch available cameras
+    Napi::Array result = Napi::Array::New(env, cameraIndexes.size());
+
+    for (size_t i = 0; i < cameraIndexes.size(); i++)
+    {
+        result[i] = Napi::Number::New(env, cameraIndexes[i]); // Fill the array with camera indexes
+    }
+
+    return result; // Return the array of available indexes
+}
+
+Napi::Object Init(Napi::Env env, Napi::Object exports) // Define Init function for the module
+{
+    // Add exported functions to the exports object.
     exports.Set("startStreaming", Napi::Function::New(env, StartStreaming));
     exports.Set("stopStreaming", Napi::Function::New(env, StopStreaming));
+    exports.Set("getAvailableCameraIndexes", Napi::Function::New(env, GetAvailableCameraIndexes));
     return exports;
 }
 

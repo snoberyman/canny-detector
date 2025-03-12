@@ -1,5 +1,6 @@
 import styled from "styled-components";
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
+import { useAppContext } from "../context/useAppContext";
 
 const Btn = styled.button`
   align-items: center;
@@ -48,17 +49,28 @@ interface SideBtnProps {
   onClick?: () => void; // Click event handler (optional)
 }
 
-const SideBtnDd = ({ icon, onClick }: SideBtnProps) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Manage dropdown visibility
+const SideBtnDd = ({ icon }: SideBtnProps) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false); // Manage dropdown visibility
+  const [options, setOptions] = useState<number[]>([]);
+  const { cameraIndex, setCameraIndex } = useAppContext();
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
 
-  const handleOptionSelect = (option: string) => {
-    alert(`Selected option: ${option}`);
+  const handleOptionSelect = (option: number) => {
+    setCameraIndex(option);
     setIsDropdownOpen(false); // Close dropdown after selection
+    console.log("selected Camera: ", cameraIndex);
   };
+
+  useEffect(() => {
+    if (window.electronAPI) {
+      window.electronAPI.fetchCams().then((response) => {
+        setOptions(response.data);
+      });
+    }
+  }, []);
 
   return (
     <div style={{ position: "relative" }}>
@@ -67,13 +79,14 @@ const SideBtnDd = ({ icon, onClick }: SideBtnProps) => {
       </Btn>
       {isDropdownOpen && (
         <Dropdown>
-          <DropdownItem onClick={onClick}>Camera 1</DropdownItem>
-          <DropdownItem onClick={() => handleOptionSelect("Camera 2")}>
-            Camera 2
-          </DropdownItem>
-          <DropdownItem onClick={() => handleOptionSelect("Camera 3")}>
-            Camera 3
-          </DropdownItem>
+          {options.map((option, index) => (
+            <DropdownItem
+              key={index}
+              onClick={() => handleOptionSelect(option)}
+            >
+              Camera {option + 1}
+            </DropdownItem>
+          ))}
         </Dropdown>
       )}
     </div>

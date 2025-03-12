@@ -20,7 +20,7 @@ const SidebarContainer = styled.div<SidebarProps>`
 `;
 
 const SideBar = () => {
-  const { cameraStatus, setCameraStatus } = useAppContext();
+  const { cameraStatus, setCameraStatus, cameraIndex } = useAppContext();
 
   useEffect(() => {
     // Listen for the reply from the main process
@@ -45,7 +45,7 @@ const SideBar = () => {
     console.log(cameraStatus);
     const newStatus = !cameraStatus; // Toggle the current status
     setCameraStatus(newStatus); // Update the state
-    window.electronAPI.sendBool("start-camera", newStatus); // Send the new status (true or false)
+    window.electronAPI.startCamera("start-camera", newStatus, cameraIndex); // Send the new status (true or false)
   };
 
   return (

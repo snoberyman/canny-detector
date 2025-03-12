@@ -18,7 +18,7 @@ let mainWindow: BrowserWindow | null = null;
 let wss: WebSocketServer | null = null;
 let wsPort: number = 0;
 let startCamera = false; // Start camera flag
-
+let status = "";
 
 // determine the appopriate icon format based on OS type
 const iconPath =
@@ -48,22 +48,24 @@ app.whenReady().then(() => {
   mainWindow.loadURL("http://localhost:5173"); // Load React (Vite) frontend
 
   // Open the Developer Tools window. dev only
-  mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools({'mode':"detach"});
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
     app.quit();
   }
 });
 
-ipcMain.on("start-camera", (event, data) => {
+ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
   // listen to channel start-camera", when a new message arrives, call backfunction would be called
 
-  if (!data) { // camera stopped
+
+  if (!cameraStatus) {
+    // camera stopped
     console.log("Stopping camera...");
 
-    addon.stopStreaming(); // release camera from the thread
+    status = addon.stopStreaming(); // release camera from the thread
 
     if (wss) {
       console.log("Closing WebSocket server...");
@@ -84,8 +86,7 @@ ipcMain.on("start-camera", (event, data) => {
 
       wss = null; // Remove reference to WebSocket server
     }
-  } 
-  else {
+  } else {
     console.log("Starting camera...");
     startCamera = true;
 
@@ -94,47 +95,37 @@ ipcMain.on("start-camera", (event, data) => {
       wss.close(); // Close existing WebSocket server before creating a new one
       wss = null;
     }
-    
+
     // Start WebSocket server inside Electron
     wss = new WebSocketServer({
-      port: 0,     // assign with n
+      port: 0, // assign with n
       maxPayload: 1024 * 1024, // Increase max payload size (default is 1MB)
       clientTracking: true, // Track connected clients
       perMessageDeflate: {
         zlibDeflateOptions: { chunkSize: 1024 },
         zlibInflateOptions: { chunkSize: 1024 },
       },
-    }); 
+    });
 
     wsPort = (wss.address() as WebSocket.AddressInfo).port; // Auto-assign an available port
 
-    mainWindow?.webContents.send("ws-port", wsPort);   // send port slected to renderer
+    mainWindow?.webContents.send("ws-port", wsPort); // send port slected to renderer
     // event.sender.send("camera-status", startCamera);   // send camera status to renderer
 
-    wss.on("connection", (ws: WebSocket, req) => {  // start streaming frames when renderer connect to wss
-      // console.log("Client connected to WebSocket");
-      // ws.send("Hello from WebSocket in Electron!");
-  
-      // // For customizing headers
-      // const allowedHeaders = ["user-agent", "origin"]; 
-      // const filteredHeaders: Record<string, string> = Object.keys(req.headers)
-      //   .filter((key) => allowedHeaders.includes(key))
-      //   .reduce((obj, key) => {
-      //     obj[key] = req.headers[key] as string; // Explicitly cast to string
-      //     return obj;
-      //   }, {} as Record<string, string>); // Provide initial type
-      // ws.send(JSON.stringify({ type: "headers", data: filteredHeaders }));
+    wss.on("connection", (ws: WebSocket, req) => {
+      // start streaming frames when renderer connect to wss
+
       console.log(`WebSocket server running on port: ${wsPort}`);
 
       // Start camera streaming and receive frames
-      const test = addon.startStreaming((frameBase64: string) => { 
+      status = addon.startStreaming((frameBase64: string) => {
         // Relay the frame to the WebSocket client
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(frameBase64);
         }
-      });
+      }, cameraIndex);
 
-      console.log("hereeere", test)
+      console.log("hereeere", status);
 
       ws.on("close", () => {
         console.log("Client disconnected.");
@@ -144,19 +135,15 @@ ipcMain.on("start-camera", (event, data) => {
 });
 
 
-
-
-
-// Handle request from frontend. communicate between main process and renderer process.
-ipcMain.handle("getHelloMessage", async () => {
-  // Listen for messages from renderer and send back responses
-  return "Hello from Main Process";
-});
-
-ipcMain.handle("fetchData", async (): Promise<{ data: string }> => {
-  // handle is async.
-  return { data: "Some data from the main process" };
+/**
+ * Handle requests from frontend. communicate between main process and renderer process.
+ *  */ 
+ipcMain.handle("fetchStatus", async (): Promise<{ status: string }> => {
+  return { status: status };
   // return { data: result };
 });
 
-
+ipcMain.handle("fetchCams", async (): Promise<{ data: number[] }> => {
+  let indexArray = addon.getAvailableCameraIndexes() 
+  return { data: indexArray} 
+});

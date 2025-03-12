@@ -19,8 +19,9 @@ import { AppContext } from "./AppContext"; //  context to hold the state
 // };
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [statusMessage, setStatusMessage] = useState("");
-  const [cameraStatus, setCameraStatus] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string>("");
+  const [cameraStatus, setCameraStatus] = useState<boolean>(false);
+  const [cameraIndex, setCameraIndex] = useState<number>(1);
 
   // useEffect(() => {
   //   // Listen to the Electron main process
@@ -34,7 +35,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AppContext.Provider
-      value={{ cameraStatus, setCameraStatus, statusMessage, setStatusMessage }}
+      value={{
+        cameraStatus,
+        setCameraStatus,
+        statusMessage,
+        setStatusMessage,
+        cameraIndex,
+        setCameraIndex,
+      }}
     >
       {children}
     </AppContext.Provider>
