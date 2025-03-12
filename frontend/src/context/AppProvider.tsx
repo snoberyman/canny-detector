@@ -21,7 +21,7 @@ import { AppContext } from "./AppContext"; //  context to hold the state
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [cameraStatus, setCameraStatus] = useState<boolean>(false);
-  const [cameraIndex, setCameraIndex] = useState<number>(1);
+  const [cameraIndex, setCameraIndex] = useState<number>(NaN);
 
   // useEffect(() => {
   //   // Listen to the Electron main process

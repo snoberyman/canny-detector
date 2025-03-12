@@ -1,11 +1,26 @@
 import styled from "styled-components";
 import { ReactNode } from "react";
 
-const Btn = styled.button`
+interface BtnProps {
+  cameraIndex?: number;
+}
+
+const Btn = styled.button<BtnProps>`
   align-items: center;
   margin: 10px auto;
   padding: 5px;
-  background-color: white;
+  background-color: ${(props) =>
+    props.cameraIndex !== undefined &&
+    props.cameraIndex >= 0 &&
+    props.cameraIndex <= 9
+      ? "white"
+      : "gray"};
+  pointer-events: ${(props) =>
+    props.cameraIndex !== undefined &&
+    props.cameraIndex >= 0 &&
+    props.cameraIndex <= 9
+      ? ""
+      : "none"};
   color: black;
   border: none;
   border-radius: 2px;
@@ -25,11 +40,12 @@ const Btn = styled.button`
 interface SideBtnProps {
   icon: ReactNode; // Icon component (optional)
   onClick?: () => void; // Click event handler (optional)
+  cameraIndex: number;
 }
 
-const SideBtn = ({ icon, onClick }: SideBtnProps) => {
+const SideBtn = ({ icon, onClick, cameraIndex }: SideBtnProps) => {
   return (
-    <Btn onClick={onClick}>
+    <Btn onClick={onClick} cameraIndex={cameraIndex}>
       {icon} {/* Render icon if provided */}
     </Btn>
   );

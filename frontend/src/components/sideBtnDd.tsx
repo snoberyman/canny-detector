@@ -12,6 +12,7 @@ const Btn = styled.button`
   border-radius: 2px;
   cursor: pointer;
   transition: background-color 0.3s;
+  disabled: disabled;
 
   &:hover {
     background-color: #e5f4e3;
@@ -67,6 +68,7 @@ const SideBtnDd = ({ icon }: SideBtnProps) => {
   useEffect(() => {
     if (window.electronAPI) {
       window.electronAPI.fetchCams().then((response) => {
+        console.log(response.data);
         setOptions(response.data);
       });
     }

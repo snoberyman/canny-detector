@@ -54,6 +54,7 @@ const SideBar = () => {
         <SideBtn
           icon={<FaRecordVinyl />}
           onClick={handleToggleCamera}
+          cameraIndex={cameraIndex}
         ></SideBtn>
         <SideBtnDd icon={<FaCamera />} onClick={() => alert("select camera")} />
       </SidebarContainer>

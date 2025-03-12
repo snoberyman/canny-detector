@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { AppProvider } from "./context/AppProvider"; // Import context provider
 
 import SideBar from "./components/sideBar";
@@ -14,34 +14,40 @@ function App() {
   // const [message, setMessage] = useState("");
   const [status, setStatus] = useState<FetchStatusResponse | null>(null);
   const [logMessages, setLogMessages] = useState<string[]>([]);
+  const prevStatusRef = useRef<string>(null);
 
   useEffect(() => {
     const fetchAndUpdate = async () => {
       if (window.electronAPI) {
         // Fetch new data
-        const response = await window.electronAPI.fetchStatus();
-        console.log("response is here: ", response);
-        // Check if data has changed (avoid adding duplicate logs)
-        if (response.status !== status?.status) {
-          setStatus(response);
-          setLogMessages((prevMessages) => [
-            ...prevMessages,
-            `<div style="color:#ccc; display:inline"> >> ${new Date().toLocaleTimeString()}:</div> ${
-              response.status
-            }`,
-          ]);
-        }
+        await window.electronAPI.fetchStatus().then((response) => {
+          // Check if data has changed (avoid adding duplicate logs)
+          if (response.status !== prevStatusRef.current) {
+            console.log("status:", status);
+            console.log("response: ", response);
+
+            setStatus(response);
+            prevStatusRef.current = response.status; // Update ref without causing re-renders
+
+            setLogMessages((prevMessages) => [
+              ...prevMessages,
+              `<div style="color:#ccc; display:inline"> >> ${new Date().toLocaleTimeString()}:</div> ${
+                response.status
+              }`,
+            ]);
+          }
+        });
       }
     };
 
     fetchAndUpdate();
 
-    // Set up polling (or use a setInterval for repeated fetches)
-    const intervalId = setInterval(fetchAndUpdate, 1000); // Poll every 2 seconds
+    // Set up polling to check status every 1 second
+    const intervalId = setInterval(fetchAndUpdate, 1000);
 
     // Clean up interval on component unmount
     return () => clearInterval(intervalId);
-  }, [status]); // Depend on `data` to trigger fetch only when it's changed
+  });
 
   return (
     <AppProvider>

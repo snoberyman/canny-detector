@@ -31,6 +31,7 @@ const MainDisplay = () => {
 
   useEffect(() => {
     console.log("Camera status from MainDisplay", cameraStatus);
+    // console.log("Camera index from MainDisplay", cameraIndex);
     // Ensure that the window.electronAPI from preload is available
     if (window.electronAPI && cameraStatus) {
       window.electronAPI.onWsPort((port: number) => {
