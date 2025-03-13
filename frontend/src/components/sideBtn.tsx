@@ -29,7 +29,7 @@ const Btn = styled.button<BtnProps>`
 interface SideBtnProps {
   icon: ReactNode; // Icon component (optional)
   onClick?: () => void; // Click event handler (optional)
-  cameraIndex: number;
+  cameraIndex: number | undefined;
 }
 
 const SideBtn = ({ icon, onClick, cameraIndex }: SideBtnProps) => {

@@ -42,7 +42,10 @@ const SideBar = () => {
   const handleToggleCamera = () => {
     const newStatus = !cameraStatus; // Toggle the current status
     setCameraStatus(newStatus); // Update the state
-    window.electronAPI.startCamera("start-camera", newStatus, cameraIndex); // Send the new status (true or false)
+    if (cameraIndex !== undefined) {
+      // Handle the case where cameraIndex is invalid or not set
+      window.electronAPI.startCamera("start-camera", newStatus, cameraIndex); // Send the new status (true or false)
+    }
   };
 
   return (

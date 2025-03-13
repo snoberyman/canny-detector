@@ -13,7 +13,9 @@ interface FetchStatusResponse {
 function App() {
   // const [message, setMessage] = useState("");
   const [status, setStatus] = useState<FetchStatusResponse | null>(null);
-  const [logMessages, setLogMessages] = useState<string[]>([]);
+  const [logMessages, setLogMessages] = useState<string[][]>([
+    ["program started", new Date().toLocaleTimeString()],
+  ]);
   const prevStatusRef = useRef<string>(null);
 
   useEffect(() => {
@@ -22,19 +24,17 @@ function App() {
         // Fetch new data
         await window.electronAPI.fetchStatus().then((response) => {
           // Check if data has changed (avoid adding duplicate logs)
-          if (response.status !== prevStatusRef.current) {
+          if (
+            response.status !== prevStatusRef.current &&
+            response.status != ""
+          ) {
             console.log("status:", status);
             console.log("response: ", response);
 
             setStatus(response);
             prevStatusRef.current = response.status; // Update ref without causing re-renders
-
-            setLogMessages((prevMessages) => [
-              ...prevMessages,
-              `<div style="color:#ccc; display:inline"> >> ${new Date().toLocaleTimeString()}:</div> ${
-                response.status
-              }`,
-            ]);
+            const tmp = [response.status, new Date().toLocaleTimeString()];
+            setLogMessages((prevMessages) => [...prevMessages, tmp]);
           }
         });
       }

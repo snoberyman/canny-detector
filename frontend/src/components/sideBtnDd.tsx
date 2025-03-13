@@ -68,7 +68,7 @@ const SideBtnDd = ({ icon }: SideBtnProps) => {
   useEffect(() => {
     if (window.electronAPI) {
       window.electronAPI.fetchCams().then((response) => {
-        console.log(response.data);
+        console.log("list of avilalble cameras:", response.data);
         setOptions(response.data);
       });
     }
