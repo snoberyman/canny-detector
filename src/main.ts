@@ -60,12 +60,14 @@ app.on("window-all-closed", () => {
 ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
   // listen to channel start-camera", when a new message arrives, call backfunction would be called
 
-
+ 
   if (!cameraStatus) {
     // camera stopped
     console.log("Stopping camera...");
 
     status = addon.stopStreaming(); // release camera from the thread
+    console.log("status is:", status);
+    updateStatus();
     startCamera = false;
     if (wss) {
       console.log("Closing WebSocket server...");
@@ -124,6 +126,7 @@ ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
           ws.send(frameBase64);
         }
       });  // , cameraIndex
+      updateStatus();
 
       console.log("hereeere", status);
 
@@ -138,10 +141,17 @@ ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
 /**
  * Handle requests from frontend. communicate between main process and renderer process.
  *  */ 
-ipcMain.handle("fetchStatus", async (): Promise<{ status: string }> => {
-  return { status: status };
-  // return { data: result };
-});
+function updateStatus() {
+    if (mainWindow) {
+      mainWindow.webContents.send("status-updated", { status });
+    }
+}
+
+// ipcMain.handle("fetchStatus", async (): Promise<{ status: string }> => {
+ 
+//   return { status: status };
+//   // return { data: result };
+// });
 
 ipcMain.handle("fetchCams", async (): Promise<{ data: number[] }> => {
   let indexArray = addon.getAvailableCameraIndexes() 

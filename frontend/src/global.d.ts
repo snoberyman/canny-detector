@@ -2,7 +2,9 @@ export interface ElectronAPI {
   send: (channel: string, data: string) => void; // You can define `data` more specifically if needed
 
   startCamera: (channel: string, cameraStatus: boolean, cameraIndex: number) => void;
-  fetchStatus: () => Promise<{ status: string }>;
+  // fetchStatus: () => Promise<{ status: string }>;
+  onStatusMessageUpdate: (callback: (data: { status: string }) => void) => void;
+
   fetchCams: () => Promise<{ data: number[] }>;
 
 

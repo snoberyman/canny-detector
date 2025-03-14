@@ -1,65 +1,39 @@
-import { useEffect, useState, useRef } from "react";
-import { AppProvider } from "./context/AppProvider"; // Import context provider
+import { useEffect } from "react";
 
 import SideBar from "./components/sideBar";
 import MainDisplay from "./components/mainDisplay";
 import LogDisplay from "./components/logDisplay";
-
-// Define the expected type for fetchStatus
-interface FetchStatusResponse {
-  status: string;
-}
+import { useAppContext } from "./context/useAppContext";
 
 function App() {
   // const [message, setMessage] = useState("");
-  const [status, setStatus] = useState<FetchStatusResponse | null>(null);
-  const [logMessages, setLogMessages] = useState<string[][]>([
-    ["program started", new Date().toLocaleTimeString()],
-  ]);
-  const prevStatusRef = useRef<string>(null);
+  const { logMessages, addLogMessage } = useAppContext();
+  // const prevStatusRef = useRef<string>(null);
 
   useEffect(() => {
-    const fetchAndUpdate = async () => {
-      if (window.electronAPI) {
-        // Fetch new data
-        await window.electronAPI.fetchStatus().then((response) => {
-          // Check if data has changed (avoid adding duplicate logs)
-          if (
-            response.status !== prevStatusRef.current &&
-            response.status != ""
-          ) {
-            console.log("status:", status);
-            console.log("response: ", response);
+    if (window.electronAPI) {
+      const handleStatusUpdate = (response: { status: string }) => {
+        // callback function to pass for onStatusMessageUpdate
+        addLogMessage([response.status, new Date().toLocaleTimeString()]);
+      };
 
-            setStatus(response);
-            prevStatusRef.current = response.status; // Update ref without causing re-renders
-            const tmp = [response.status, new Date().toLocaleTimeString()];
-            setLogMessages((prevMessages) => [...prevMessages, tmp]);
-          }
-        });
-      }
-    };
+      window.electronAPI.onStatusMessageUpdate(handleStatusUpdate); // pass handleStatusUpdate to be called on straing recieved from the main process
 
-    fetchAndUpdate();
-
-    // Set up polling to check status every 1 second
-    const intervalId = setInterval(fetchAndUpdate, 1000);
-
-    // Clean up interval on component unmount
-    return () => clearInterval(intervalId);
-  });
+      return () => {
+        window.electronAPI.removeAllListeners("status-updated");
+      };
+    }
+  }, [addLogMessage]);
 
   return (
-    <AppProvider>
-      <div style={{ textAlign: "center" }}>
-        <SideBar />
-        <MainDisplay />
+    <div style={{ textAlign: "center" }}>
+      <SideBar />
+      <MainDisplay />
 
-        <LogDisplay messages={logMessages} />
-        {/* <p>Message from Electron: {message}</p>
+      <LogDisplay messages={logMessages} />
+      {/* <p>Message from Electron: {message}</p>
         <p>Data from Main Process: {data ? data.data : "Loading..."}</p> */}
-      </div>
-    </AppProvider>
+    </div>
   );
 }
 

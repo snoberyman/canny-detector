@@ -2,7 +2,11 @@ import styled from "styled-components";
 import { ReactNode, useState, useEffect } from "react";
 import { useAppContext } from "../context/useAppContext";
 
-const Btn = styled.button`
+interface BtnProps {
+  $noCameras?: number;
+}
+
+const Btn = styled.button<BtnProps>`
   align-items: center;
   margin: 10px auto;
   padding: 5px;
@@ -13,6 +17,18 @@ const Btn = styled.button`
   cursor: pointer;
   transition: background-color 0.3s;
   disabled: disabled;
+  background-color: ${(props) =>
+    props.$noCameras !== undefined &&
+    props.$noCameras >= 1 &&
+    props.$noCameras <= 9
+      ? "white"
+      : "gray"};
+  pointer-events: ${(props) =>
+    props.$noCameras !== undefined &&
+    props.$noCameras >= 1 &&
+    props.$noCameras <= 9
+      ? ""
+      : "none"};
 
   &:hover {
     background-color: #e5f4e3;
@@ -53,30 +69,70 @@ interface SideBtnProps {
 const SideBtnDd = ({ icon }: SideBtnProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false); // Manage dropdown visibility
   const [options, setOptions] = useState<number[]>([]);
-  const { cameraIndex, setCameraIndex } = useAppContext();
+  const { cameraIndex, setCameraIndex, addLogMessage } = useAppContext();
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
 
   const handleOptionSelect = (option: number) => {
-    setCameraIndex(option);
     setIsDropdownOpen(false); // Close dropdown after selection
-    console.log("selected Camera: ", cameraIndex);
+    setCameraIndex(option);
+    // addLogMessage([
+    //   `Camera ${
+    //     cameraIndex != undefined && cameraIndex >= 0 && cameraIndex <= 9
+    //       ? cameraIndex + 1
+    //       : ""
+    //   } is selected.`,
+    //   new Date().toLocaleTimeString(),
+    // ]);
   };
+
+  useEffect(() => {
+    if (typeof cameraIndex === "number") {
+      addLogMessage([
+        `Camera ${cameraIndex + 1} is selected.`,
+        new Date().toLocaleTimeString(),
+      ]);
+    }
+    // else {
+    //   addLogMessage([
+    //     `Camera is not selected or invalid index.`,
+    //     new Date().toLocaleTimeString(),
+    //   ]);
+    // }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraIndex]); // This runs when cameraIndex changes
 
   useEffect(() => {
     if (window.electronAPI) {
       window.electronAPI.fetchCams().then((response) => {
-        console.log("list of avilalble cameras:", response.data);
+        if (response.data.length === 1) {
+          addLogMessage([
+            `1 Camera detected.`,
+            new Date().toLocaleTimeString(),
+          ]);
+        } else if (response.data.length > 1 && response.data.length << 10) {
+          addLogMessage([
+            `${response.data.length} Cameras detected.`,
+            new Date().toLocaleTimeString(),
+          ]);
+        } else {
+          addLogMessage([
+            `No camera detected! Please check your connection and ensure a camera is plugged in.`,
+            new Date().toLocaleTimeString(),
+          ]);
+        }
+
         setOptions(response.data);
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div style={{ position: "relative" }}>
-      <Btn onClick={toggleDropdown}>
+      <Btn onClick={toggleDropdown} $noCameras={options.length}>
         {icon} {/* Render icon if provided */}
       </Btn>
       {isDropdownOpen && (

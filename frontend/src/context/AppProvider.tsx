@@ -19,10 +19,15 @@ import { AppContext } from "./AppContext"; //  context to hold the state
 // };
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [statusMessage, setStatusMessage] = useState<string>("");
+  const [logMessages, setLogMessages] = useState<string[][]>([
+    ["Program started...", new Date().toLocaleTimeString()],
+  ]);
   const [cameraStatus, setCameraStatus] = useState<boolean>(false);
   const [cameraIndex, setCameraIndex] = useState<number | undefined>(undefined);
 
+  const addLogMessage = (message: [string, string]) => {
+    setLogMessages((prev) => [...prev, message]);
+  };
   // useEffect(() => {
   //   // Listen to the Electron main process
   //   // const unsubscribe = listenToMainProcess(setStatusMessage);
@@ -38,10 +43,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       value={{
         cameraStatus,
         setCameraStatus,
-        statusMessage,
-        setStatusMessage,
         cameraIndex,
         setCameraIndex,
+        logMessages,
+        addLogMessage,
       }}
     >
       {children}
