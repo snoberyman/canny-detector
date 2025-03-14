@@ -29,10 +29,7 @@ function App() {
     <div style={{ textAlign: "center" }}>
       <SideBar />
       <MainDisplay />
-
       <LogDisplay messages={logMessages} />
-      {/* <p>Message from Electron: {message}</p>
-        <p>Data from Main Process: {data ? data.data : "Loading..."}</p> */}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useMemo, useCallback } from "react";
 import { AppContext } from "./AppContext"; //  context to hold the state
 
 // Use the exposed `electronAPI` object to communicate with the main process
@@ -25,9 +25,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [cameraStatus, setCameraStatus] = useState<boolean>(false);
   const [cameraIndex, setCameraIndex] = useState<number | undefined>(undefined);
 
-  const addLogMessage = (message: [string, string]) => {
+  const addLogMessage = useCallback((message: [string, string]) => {
+    // useCallback: addLogMessage only changes when setLogMessages changes
     setLogMessages((prev) => [...prev, message]);
-  };
+  }, []);
   // useEffect(() => {
   //   // Listen to the Electron main process
   //   // const unsubscribe = listenToMainProcess(setStatusMessage);
@@ -37,19 +38,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   //     // unsubscribe();
   //   };
   // }, []);
+  const contextValue = useMemo(
+    () => ({
+      cameraStatus,
+      setCameraStatus,
+      cameraIndex,
+      setCameraIndex,
+      logMessages,
+      addLogMessage,
+    }),
+    [cameraStatus, cameraIndex, logMessages, addLogMessage]
+  );
 
   return (
-    <AppContext.Provider
-      value={{
-        cameraStatus,
-        setCameraStatus,
-        cameraIndex,
-        setCameraIndex,
-        logMessages,
-        addLogMessage,
-      }}
-    >
-      {children}
-    </AppContext.Provider>
+    <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>
   );
 };

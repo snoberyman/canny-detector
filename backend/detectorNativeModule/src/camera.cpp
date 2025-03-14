@@ -2,6 +2,8 @@
 #include <iostream>
 #include <napi.h>
 #include <opencv2/opencv.hpp>
+// #include <opencv2/bgsegm.hpp>
+
 #include <thread>
 #include <mutex>
 #include <atomic>
@@ -13,6 +15,7 @@ std::atomic<bool> streaming = false; // Use atomic for thread safety (ensures no
 cv::VideoCapture cap;                // Open the default camera
 std::mutex cap_mutex;                // Mutex to protect access to `cap`
 std::thread streamThread;            // Worker thread
+int selectedAlgorithm = 0;
 
 // Helper function that returns an array (vector) of available camera indexes
 std::vector<int> getAvailableCameraIndexes()
@@ -56,15 +59,13 @@ std::string MatToBase64(const cv::Mat &frame)
  * @return void
  *
  */
-void StreamCamera(Napi::Env *env) // , int index
+void StreamCamera(Napi::Env *env, int index) // , int index
 {
     {
         std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to `cap`
 
-        // int cameraIndex = getAvailableCameraIndex();
-
 #ifdef _WIN32
-        cap.open(0, cv::CAP_DSHOW); // Windows (DirectShow)
+        cap.open(index, cv::CAP_DSHOW); // Windows (DirectShow)
 #elif __APPLE__
         cap.open(index, cv::CAP_AVFOUNDATION); // macOS (AVFoundation)
 #elif __linux__
@@ -86,6 +87,7 @@ void StreamCamera(Napi::Env *env) // , int index
     while (streaming)
     {
         cv::Mat frame;
+        cv::Mat edges;
         {
             std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to `cap`
             cap >> frame;
@@ -96,8 +98,33 @@ void StreamCamera(Napi::Env *env) // , int index
             std::cerr << "Error: Cannot grab a frame" << std::endl;
             continue;
         }
+        /********************************************************************************** */
+        if (selectedAlgorithm == 0)
+        {
+            cv::Mat gray_frame;
+            cv::cvtColor(frame, gray_frame, cv::COLOR_BGR2GRAY);
+            cv::Canny(gray_frame, edges, 100, 200);
+        }
+        else if (selectedAlgorithm == 1)
+        {
+            cv::Mat grad_x, grad_y;
+            cv::Sobel(frame, grad_x, CV_8U, 1, 0); // X gradient
+            cv::Sobel(frame, grad_y, CV_8U, 0, 1); // Y gradient
+
+            cv::addWeighted(grad_x, 0.5, grad_y, 0.5, 0, edges); // Combine X and Y gradients
+        }
+        else if (selectedAlgorithm == 2)
+        {
+            cv::Laplacian(frame, edges, CV_8U);
+        }
+        /********************************************************************************** */
+        // sobel edges
+
+        /********************************************************************************** */
+        // laplacian_edges
+
         // Convert frame to Base64
-        std::string base64Frame = MatToBase64(frame);
+        std::string base64Frame = MatToBase64(edges);
         // tsfn: ensures that calls from a background thread to the JavaScript callback function are safe (Node is single-threaded)
         tsfn.NonBlockingCall([base64Frame](Napi::Env env, Napi::Function jsCallback)
                              { jsCallback.Call({Napi::String::New(env, base64Frame)}); });
@@ -147,13 +174,13 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
             std::cout << "ThreadSafeFunction finalized!" << streaming << std::endl;
         });
 
-    // int index = info[1].As<Napi::Number>().Int32Value();
+    int index = info[1].As<Napi::Number>().Int32Value();
     streaming = true;
     // Start the streaming in a separate thread
-    streamThread = std::thread(StreamCamera, &env); // index
+    streamThread = std::thread(StreamCamera, &env, index); // index
     // streamThread.detach();                        // Detach the thread to run independently
 
-    return Napi::String::New(env, "Streaming started!");
+    return Napi::String::New(env, "Streaming frames started!");
 }
 
 /**
@@ -212,12 +239,21 @@ Napi::Array GetAvailableCameraIndexes(const Napi::CallbackInfo &info)
     return result; // Return the array of available indexes
 }
 
+Napi::String setSelecteAlgorithm(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+    selectedAlgorithm = info[1].As<Napi::Number>().Int32Value();
+
+    return Napi::String::New(env, "Algorithm selected!"); // Return the array of available indexes
+}
+
 Napi::Object Init(Napi::Env env, Napi::Object exports) // Define Init function for the module
 {
     // Add exported functions to the exports object.
     exports.Set("startStreaming", Napi::Function::New(env, StartStreaming));
     exports.Set("stopStreaming", Napi::Function::New(env, StopStreaming));
     exports.Set("getAvailableCameraIndexes", Napi::Function::New(env, GetAvailableCameraIndexes));
+    exports.Set("setSelecteAlgorithm", Napi::Function::New(env, setSelecteAlgorithm));
     return exports;
 }
 

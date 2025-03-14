@@ -78,14 +78,6 @@ const SideBtnDd = ({ icon }: SideBtnProps) => {
   const handleOptionSelect = (option: number) => {
     setIsDropdownOpen(false); // Close dropdown after selection
     setCameraIndex(option);
-    // addLogMessage([
-    //   `Camera ${
-    //     cameraIndex != undefined && cameraIndex >= 0 && cameraIndex <= 9
-    //       ? cameraIndex + 1
-    //       : ""
-    //   } is selected.`,
-    //   new Date().toLocaleTimeString(),
-    // ]);
   };
 
   useEffect(() => {
@@ -95,14 +87,7 @@ const SideBtnDd = ({ icon }: SideBtnProps) => {
         new Date().toLocaleTimeString(),
       ]);
     }
-    // else {
-    //   addLogMessage([
-    //     `Camera is not selected or invalid index.`,
-    //     new Date().toLocaleTimeString(),
-    //   ]);
-    // }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cameraIndex]); // This runs when cameraIndex changes
+  }, [cameraIndex, addLogMessage]); // This runs when cameraIndex changes
 
   useEffect(() => {
     if (window.electronAPI) {
@@ -127,8 +112,7 @@ const SideBtnDd = ({ icon }: SideBtnProps) => {
         setOptions(response.data);
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [addLogMessage]);
 
   return (
     <div style={{ position: "relative" }}>

@@ -57,6 +57,11 @@ app.on("window-all-closed", () => {
   }
 });
 
+
+ipcMain.on("select-algorithm", (event, algorithm) => {
+  addon.setSelecteAlgorithm(() => {}, algorithm);
+})
+
 ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
   // listen to channel start-camera", when a new message arrives, call backfunction would be called
 
@@ -125,7 +130,7 @@ ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(frameBase64);
         }
-      });  // , cameraIndex
+      },cameraIndex);  // , cameraIndex
       updateStatus();
 
       console.log("hereeere", status);
@@ -147,11 +152,6 @@ function updateStatus() {
     }
 }
 
-// ipcMain.handle("fetchStatus", async (): Promise<{ status: string }> => {
- 
-//   return { status: status };
-//   // return { data: result };
-// });
 
 ipcMain.handle("fetchCams", async (): Promise<{ data: number[] }> => {
   let indexArray = addon.getAvailableCameraIndexes() 
