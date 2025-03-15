@@ -1,13 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-import SideBar from "./components/sideBar";
+import SideBar from "./components/sideBar/sideBar";
 import MainDisplay from "./components/mainDisplay";
 import LogDisplay from "./components/logDisplay";
 import { useAppContext } from "./context/useAppContext";
+import AlgorithmSelect from "./components/algorithmControl/algorithmSelect";
+import AlgorithmControl from "./components/algorithmControl/algorithmControl";
 
 function App() {
   // const [message, setMessage] = useState("");
   const { logMessages, addLogMessage } = useAppContext();
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState(0);
+
   // const prevStatusRef = useRef<string>(null);
 
   useEffect(() => {
@@ -29,6 +33,11 @@ function App() {
     <div style={{ textAlign: "center" }}>
       <SideBar />
       <MainDisplay />
+      <AlgorithmSelect
+        selectedAlgorithm={selectedAlgorithm}
+        setSelectedAlgorithm={setSelectedAlgorithm}
+      />
+      <AlgorithmControl selectedAlgorithm={selectedAlgorithm} />
       <LogDisplay messages={logMessages} />
     </div>
   );

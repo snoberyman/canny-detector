@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import { ReactNode, useState, useEffect } from "react";
-import { useAppContext } from "../context/useAppContext";
+import { useAppContext } from "../../context/useAppContext";
 
 interface BtnProps {
   $noCameras?: number;

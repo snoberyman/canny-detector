@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import SideBtn from "./sideBtn";
 import { FaCamera, FaRecordVinyl } from "react-icons/fa6";
-import { useAppContext } from "../context/useAppContext";
+import { useAppContext } from "../../context/useAppContext";
 import SideBtnDd from "./sideBtnDd";
 import { useEffect } from "react";
 

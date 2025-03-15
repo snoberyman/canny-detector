@@ -103,19 +103,19 @@ void StreamCamera(Napi::Env *env, int index) // , int index
         {
             cv::Mat gray_frame;
             cv::cvtColor(frame, gray_frame, cv::COLOR_BGR2GRAY);
-            cv::Canny(gray_frame, edges, 100, 200);
+            cv::Canny(gray_frame, edges, 100, 200); // low threshold and hight threshold
         }
         else if (selectedAlgorithm == 1)
         {
-            cv::Mat grad_x, grad_y;
-            cv::Sobel(frame, grad_x, CV_8U, 1, 0); // X gradient
-            cv::Sobel(frame, grad_y, CV_8U, 0, 1); // Y gradient
+            cv::Mat grad_x, grad_y;                        // k-size and scale
+            cv::Sobel(frame, grad_x, CV_8U, 1, 0, 3, 2.0); // X gradient
+            cv::Sobel(frame, grad_y, CV_8U, 0, 1, 3, 2.0); // Y gradient
 
             cv::addWeighted(grad_x, 0.5, grad_y, 0.5, 0, edges); // Combine X and Y gradients
         }
         else if (selectedAlgorithm == 2)
         {
-            cv::Laplacian(frame, edges, CV_8U);
+            cv::Laplacian(frame, edges, CV_8U); // k-size and scale
         }
         /********************************************************************************** */
         // sobel edges
@@ -239,6 +239,13 @@ Napi::Array GetAvailableCameraIndexes(const Napi::CallbackInfo &info)
     return result; // Return the array of available indexes
 }
 
+/**
+ * @brief  Responsible for updating selected algorithm index
+ *
+ * @param  info[1]   holds the algorithm's index selected from the front end
+ * @return String    return message
+ *
+ */
 Napi::String setSelecteAlgorithm(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
