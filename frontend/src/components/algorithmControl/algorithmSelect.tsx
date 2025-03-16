@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { useAppContext } from "../../context/useAppContext";
 
 // Styled Components
 const Container = styled.div`
@@ -36,9 +37,16 @@ const AlgorithmSelect = ({
   selectedAlgorithm: number;
   setSelectedAlgorithm: React.Dispatch<React.SetStateAction<number>>;
 }) => {
+  const { addLogMessage } = useAppContext(); // Get the latest message
+
   const handleSelect = (algorithm: number) => {
     setSelectedAlgorithm(algorithm);
     window.electronAPI.selectAlgorithm("select-algorithm", algorithm);
+
+    addLogMessage([
+      `${buttonNames[algorithm]} algorithm is selected`,
+      new Date().toLocaleTimeString(),
+    ]);
   };
 
   const buttonNames = ["Canny", "Sobel", "Laplacian"];

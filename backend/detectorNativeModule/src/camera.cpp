@@ -2,8 +2,6 @@
 #include <iostream>
 #include <napi.h>
 #include <opencv2/opencv.hpp>
-// #include <opencv2/bgsegm.hpp>
-
 #include <thread>
 #include <mutex>
 #include <atomic>
@@ -220,7 +218,7 @@ Napi::Value StopStreaming(const Napi::CallbackInfo &info)
 
     tsfn.Release();
 
-    return Napi::String::New(env, "Streaming stopped!");
+    return Napi::String::New(env, "Streaming stopped! Worker thread is released.");
 }
 
 /**
@@ -262,10 +260,10 @@ Napi::String SetSelecteAlgorithm(const Napi::CallbackInfo &info)
 /**
  * @brief  Responsible for updating algorithms parameters
  *
- * @param  info[1]
- * @param  info[2]
- * @param  info[3]
- * @param  info[4]
+ * @param  info[1]  Canny low threshold: any pixels below this value (gradient magnitude) are discarded (not edges)
+ * @param  info[2]  Canny high threshold:  any pixels with above this value are considered strong edges.   (edges between thresholds are weaker edges)
+ * @param  info[3]  Kernel size: the size of the Gaussian blurring filter. Smaller values capture fine edges, and higher values produce thicker edges.
+ * @param  info[4]  delta: Shifts gradient values
  * @return String    return message
  *
  */
@@ -277,7 +275,7 @@ Napi::String SetAlgorithmsParams(const Napi::CallbackInfo &info)
     ksize = info[3].As<Napi::Number>().Int32Value();
     delta = info[4].As<Napi::Number>().Int32Value();
 
-    return Napi::String::New(env, "Algorithm controlled is set!"); // Return the array of available indexes
+    return Napi::String::New(env, "Algorithm controlls are set!"); // Return the array of available indexes
 }
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) // Define Init function for the module

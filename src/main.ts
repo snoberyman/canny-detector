@@ -60,26 +60,24 @@ app.on("window-all-closed", () => {
 
 ipcMain.on("select-algorithm", (event, algorithm) => {
   addon.setSelecteAlgorithm(() => {}, algorithm);
-})
+});
 
 ipcMain.on("algorithms-params", (event, lowThreshold, highThreshold, ksize, delta) => {
   addon.setAlgorithmsParams(() => {}, lowThreshold, highThreshold, ksize, delta);
-})
+});
+
 
 ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
   // listen to channel start-camera", when a new message arrives, call backfunction would be called
-
- 
   if (!cameraStatus) {
-    // camera stopped
-    console.log("Stopping camera...");
-
     status = addon.stopStreaming(); // release camera from the thread
-    console.log("status is:", status);
     updateStatus();
     startCamera = false;
+
+
     if (wss) {
-      console.log("Closing WebSocket server...");
+      status = "Closing WebSocket server...";
+      updateStatus();
 
       // Close all WebSocket client connections
       wss.clients.forEach((client) => {
@@ -89,20 +87,22 @@ ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
       // Close the WebSocket server
       wss.close((err) => {
         if (err) {
-          console.error("Error while closing WebSocket server:", err);
+          status = "Error while closing WebSocket server:", err;
+          updateStatus();
         } else {
-          console.log("WebSocket server closed successfully.");
+          status = "WebSocket server closed successfully.";
+          updateStatus();
         }
       });
 
       wss = null; // Remove reference to WebSocket server
     }
   } else {
-    console.log("Starting camera...");
     startCamera = true;
 
     if (wss) {
-      console.log("WebSocket server already running. Restarting...");
+      status = "WebSocket server already running. Restarting...";
+      updateStatus();
       wss.close(); // Close existing WebSocket server before creating a new one
       wss = null;
     }
@@ -125,8 +125,9 @@ ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
 
     wss.on("connection", (ws: WebSocket, req) => {
       // start streaming frames when renderer connect to wss
-
-      console.log(`WebSocket server running on port: ${wsPort}`);
+      
+      status = `WebSocket server running on port: ${wsPort}`;
+      updateStatus();
 
       // Start camera streaming and receive frames
       status = addon.startStreaming((frameBase64: string) => {
@@ -137,10 +138,9 @@ ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
       },cameraIndex);  // , cameraIndex
       updateStatus();
 
-      console.log("hereeere", status);
-
       ws.on("close", () => {
-        console.log("Client disconnected.");
+        status = "Client disconnected.";
+        updateStatus();
       });
     });
   }
