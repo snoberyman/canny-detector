@@ -47,8 +47,9 @@ const Dropdown = styled.div`
   border-radius: 2px;
   padding: 10px;
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-  width: 150px;
+  width: 100px;
   top: 40px; /* Position dropdown below the button */
+  left: 5px;
   z-index: 100;
 `;
 

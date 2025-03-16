@@ -23,21 +23,24 @@ const VideoImage = styled.img`
   width: 640px;
   height: 480px;
   margin: auto;
+  display: block;
 `;
 
 const MainDisplay = () => {
   const { cameraStatus, addLogMessage } = useAppContext(); // Get the latest message
   const [videoStream, setVideoStream] = useState<string>("");
+  const [fps, setFps] = useState<string>("0");
 
   useEffect(() => {
+    let lastTimestamp = performance.now(); // initial timestamp (milliseconds)
+    // let frameCount = 0;
+    // let fps = 0;
+
     // Ensure that the window.electronAPI from preload is available
     if (window.electronAPI && cameraStatus) {
       window.electronAPI.onWsPort((port: number) => {
-        // console.log("Camera status from MainDisplay", cameraStatus);
-        // connect to websocket server from main. get server port number
         // Create a new WebSocket instance to connect with the WebSocket server that runs on Electron's main prcess
         const socket = new WebSocket(`ws://localhost:${port}`);
-
         // Set the event listeners on the socket
         socket.onopen = () => {
           // when connection is established
@@ -48,6 +51,18 @@ const MainDisplay = () => {
           // window.electronAPI.startStreaming(); // Start streaming in the main process
         };
         socket.onmessage = (event: MessageEvent) => {
+          const now = performance.now(); // Current timestamp (milliseconds)
+          const timeDiff = now - lastTimestamp; // Time difference between two consecutive frames
+          lastTimestamp = now; // Update timestamp for the next frame
+
+          // Calculate FPS (convert ms to seconds)
+          if (timeDiff > 0) {
+            const currentFPS = 1000 / timeDiff; // FPS = 1000ms / frame interval (taken in ms)
+            // fps = (fps * frameCount + currentFPS) / (frameCount + 1); // Smoother  FPS with averaging, to prevent suddent spikes
+            // frameCount++;
+            setFps(currentFPS.toFixed());
+          }
+
           // when client recieve message from server
           setVideoStream(event.data); // Set the video stream as the image source
         };
@@ -60,6 +75,7 @@ const MainDisplay = () => {
           ]);
 
           setVideoStream("");
+          setFps("0");
           if (socket) {
             socket.close();
           }
@@ -93,8 +109,7 @@ const MainDisplay = () => {
             </PlayButtonContainer>
           </VideoContainer>
         )}
-        {/* <h1>📩 Received Message: {ws?.CLOSED}</h1>
-                <p>{latestMessage}</p> */}
+        <div style={{ fontSize: "14px", marginTop: "5px" }}>FPS: {fps}</div>
       </div>
     </>
   );
