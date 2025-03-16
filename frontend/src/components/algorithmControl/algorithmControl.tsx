@@ -40,16 +40,23 @@ const Slider = styled.input`
 interface AlgorithmControlProps {
   selectedAlgorithm: number;
 }
-
+// algorithms-params
 const AlgorithmControl = ({ selectedAlgorithm }: AlgorithmControlProps) => {
-  const [lowThreshold, setLowThreshold] = useState(0);
-  const [highThreshold, setHighThreshold] = useState(255);
+  const [lowThreshold, setLowThreshold] = useState(100);
+  const [highThreshold, setHighThreshold] = useState(200);
   const [ksize, setKsize] = useState(3);
-  const [scale, setScale] = useState(1.0);
+  const [delta, setdelta] = useState(0);
 
   const handleLowThresholdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newLowThreshold = Math.min(Number(e.target.value), highThreshold - 1);
     setLowThreshold(newLowThreshold);
+    window.electronAPI.algorithmsParmas(
+      "algorithms-params",
+      newLowThreshold,
+      highThreshold,
+      ksize,
+      delta
+    );
   };
 
   const handleHighThresholdChange = (
@@ -57,14 +64,35 @@ const AlgorithmControl = ({ selectedAlgorithm }: AlgorithmControlProps) => {
   ) => {
     const newHighThreshold = Math.max(Number(e.target.value), lowThreshold + 1);
     setHighThreshold(newHighThreshold);
+    window.electronAPI.algorithmsParmas(
+      "algorithms-params",
+      lowThreshold,
+      newHighThreshold,
+      ksize,
+      delta
+    );
   };
 
   const handleKsizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setKsize(Number(e.target.value));
+    window.electronAPI.algorithmsParmas(
+      "algorithms-params",
+      lowThreshold,
+      highThreshold,
+      ksize,
+      delta
+    );
   };
 
-  const handleScaleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setScale(parseFloat(e.target.value));
+  const handledeltaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setdelta(parseFloat(e.target.value));
+    window.electronAPI.algorithmsParmas(
+      "algorithms-params",
+      lowThreshold,
+      highThreshold,
+      ksize,
+      delta
+    );
   };
 
   return (
@@ -102,16 +130,16 @@ const AlgorithmControl = ({ selectedAlgorithm }: AlgorithmControlProps) => {
             onChange={handleKsizeChange}
           />
           {ksize}
-          <SliderLabel>Scale</SliderLabel>
+          <SliderLabel>delta</SliderLabel>
           <Slider
             type="range"
-            min={0.5}
-            max={2.0}
-            step={0.1}
-            value={scale}
-            onChange={handleScaleChange}
+            min={0}
+            max={255}
+            step={1}
+            value={delta}
+            onChange={handledeltaChange}
           />
-          {scale}
+          {delta}
         </>
       )}
     </Container>

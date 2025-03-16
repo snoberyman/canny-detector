@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   startCamera: (channel: string, cameraStatus: boolean, cameraIndex: number) => ipcRenderer.send(channel, cameraStatus, cameraIndex),
   selectAlgorithm: (channel: string, algorithm: number) => ipcRenderer.send(channel, algorithm),
+  algorithmsParmas: (channel: string, lowThreshold: number, highThreshold: number, ksize: number, delta: number) => ipcRenderer.send(channel, lowThreshold, highThreshold, ksize, delta),
   onStatusMessageUpdate: (callback: (data: { status: string }) => void) => {
     ipcRenderer.on("status-updated", (_event: IpcRendererEvent, data: { status: string }) => {
       callback(data);

@@ -11,16 +11,16 @@ const Container = styled.div`
   left: 10%;
 `;
 
-const Button = styled.button<{ pressed: boolean }>`
+const Button = styled.button<{ $pressed: boolean }>`
   width: 110px;
   padding: 10px;
   font-size: 14px;
   font-weight: bold;
   cursor: pointer;
   border: 2px solid #999;
-  background: ${(props) => (props.pressed ? "#ccc" : "#ddd")};
+  background: ${(props) => (props.$pressed ? "#ccc" : "#ddd")};
   box-shadow: ${(props) =>
-    props.pressed ? "inset 4px 4px 8px #888" : "4px 4px 8px #666"};
+    props.$pressed ? "inset 4px 4px 8px #888" : "4px 4px 8px #666"};
   transition: all 0.1s ease-in-out;
 
   &:active {
@@ -48,7 +48,7 @@ const AlgorithmSelect = ({
       {[0, 1, 2].map((algorithm) => (
         <Button
           key={algorithm}
-          pressed={selectedAlgorithm === algorithm}
+          $pressed={selectedAlgorithm === algorithm}
           onClick={() => handleSelect(algorithm)}
         >
           {buttonNames[algorithm]}

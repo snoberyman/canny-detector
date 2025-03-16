@@ -3,7 +3,8 @@ export interface ElectronAPI {
   fetchCams: () => Promise<{ data: number[] }>;
   onWsPort: (callback: (port: number) => void) => void;
   startCamera: (channel: string, cameraStatus: boolean, cameraIndex: number,algorithm: number) => void;
-  selectAlgorithm: (channel: string,algorithm: number) => void;
+  selectAlgorithm: (channel: string, algorithm: number) => void;
+  algorithmsParmas: (channel: string, lowThreshold: number, highThreshold: number, ksize: number, delta: number) => void;
   onStatusMessageUpdate: (callback: (data: { status: string }) => void) => void;
   removeAllListeners: (channel: string) => void;
   

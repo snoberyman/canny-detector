@@ -62,6 +62,10 @@ ipcMain.on("select-algorithm", (event, algorithm) => {
   addon.setSelecteAlgorithm(() => {}, algorithm);
 })
 
+ipcMain.on("algorithms-params", (event, lowThreshold, highThreshold, ksize, delta) => {
+  addon.setAlgorithmsParams(() => {}, lowThreshold, highThreshold, ksize, delta);
+})
+
 ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
   // listen to channel start-camera", when a new message arrives, call backfunction would be called
 

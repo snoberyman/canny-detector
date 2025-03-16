@@ -16,9 +16,14 @@ cv::VideoCapture cap;                // Open the default camera
 std::mutex cap_mutex;                // Mutex to protect access to `cap`
 std::thread streamThread;            // Worker thread
 int selectedAlgorithm = 0;
+int lowThreshold = 100;
+int highThreshold = 200;
+int ksize = 3;
+int delta = 0;
 
 // Helper function that returns an array (vector) of available camera indexes
-std::vector<int> getAvailableCameraIndexes()
+std::vector<int>
+getAvailableCameraIndexes()
 {
     std::vector<int> availableCameras;
     int index = 0;
@@ -103,19 +108,19 @@ void StreamCamera(Napi::Env *env, int index) // , int index
         {
             cv::Mat gray_frame;
             cv::cvtColor(frame, gray_frame, cv::COLOR_BGR2GRAY);
-            cv::Canny(gray_frame, edges, 100, 200); // low threshold and hight threshold
+            cv::Canny(gray_frame, edges, lowThreshold, highThreshold); // low threshold and hight threshold
         }
         else if (selectedAlgorithm == 1)
         {
-            cv::Mat grad_x, grad_y;                        // k-size and scale
-            cv::Sobel(frame, grad_x, CV_8U, 1, 0, 3, 2.0); // X gradient
-            cv::Sobel(frame, grad_y, CV_8U, 0, 1, 3, 2.0); // Y gradient
+            cv::Mat grad_x, grad_y;                                   // k-size and delta
+            cv::Sobel(frame, grad_x, CV_8U, 1, 0, ksize, 1.0, delta); // X gradient
+            cv::Sobel(frame, grad_y, CV_8U, 0, 1, ksize, 1.0, delta); // Y gradient
 
             cv::addWeighted(grad_x, 0.5, grad_y, 0.5, 0, edges); // Combine X and Y gradients
         }
         else if (selectedAlgorithm == 2)
         {
-            cv::Laplacian(frame, edges, CV_8U); // k-size and scale
+            cv::Laplacian(frame, edges, CV_8U, ksize, 1.0, delta); // k-size and delta
         }
         /********************************************************************************** */
         // sobel edges
@@ -246,12 +251,33 @@ Napi::Array GetAvailableCameraIndexes(const Napi::CallbackInfo &info)
  * @return String    return message
  *
  */
-Napi::String setSelecteAlgorithm(const Napi::CallbackInfo &info)
+Napi::String SetSelecteAlgorithm(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
     selectedAlgorithm = info[1].As<Napi::Number>().Int32Value();
 
     return Napi::String::New(env, "Algorithm selected!"); // Return the array of available indexes
+}
+
+/**
+ * @brief  Responsible for updating algorithms parameters
+ *
+ * @param  info[1]
+ * @param  info[2]
+ * @param  info[3]
+ * @param  info[4]
+ * @return String    return message
+ *
+ */
+Napi::String SetAlgorithmsParams(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+    lowThreshold = info[1].As<Napi::Number>().Int32Value();
+    highThreshold = info[2].As<Napi::Number>().Int32Value();
+    ksize = info[3].As<Napi::Number>().Int32Value();
+    delta = info[4].As<Napi::Number>().Int32Value();
+
+    return Napi::String::New(env, "Algorithm controlled is set!"); // Return the array of available indexes
 }
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) // Define Init function for the module
@@ -260,7 +286,8 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) // Define Init function f
     exports.Set("startStreaming", Napi::Function::New(env, StartStreaming));
     exports.Set("stopStreaming", Napi::Function::New(env, StopStreaming));
     exports.Set("getAvailableCameraIndexes", Napi::Function::New(env, GetAvailableCameraIndexes));
-    exports.Set("setSelecteAlgorithm", Napi::Function::New(env, setSelecteAlgorithm));
+    exports.Set("setSelecteAlgorithm", Napi::Function::New(env, SetSelecteAlgorithm));
+    exports.Set("setAlgorithmsParams", Napi::Function::New(env, SetAlgorithmsParams));
     return exports;
 }
 
