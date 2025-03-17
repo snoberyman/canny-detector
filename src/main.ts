@@ -72,8 +72,8 @@ ipcMain.on("select-algorithm", (event, algorithm) => {
   addon.setSelecteAlgorithm(() => {}, algorithm);
 });
 
-ipcMain.on("algorithms-params", (event, lowThreshold, highThreshold, ksize, delta) => {
-  addon.setAlgorithmsParams(() => {}, lowThreshold, highThreshold, ksize, delta);
+ipcMain.on("algorithms-params", (event, lowThreshold, highThreshold, L2gradient, ksize, delta) => {
+  addon.setAlgorithmsParams(() => {}, lowThreshold, highThreshold, L2gradient, ksize, delta);
 });
 
 /**

@@ -8,7 +8,7 @@ const Container = styled.div`
   align-items: center;
   gap: 20px;
   position: fixed;
-  top: 25%;
+  top: 20%;
   right: 3%;
 `;
 
@@ -40,10 +40,11 @@ const Slider = styled.input`
 interface AlgorithmControlProps {
   selectedAlgorithm: number;
 }
-// algorithms-params
+// algorithms-params apertureSize, L2gradient,
 const AlgorithmControl = ({ selectedAlgorithm }: AlgorithmControlProps) => {
   const [lowThreshold, setLowThreshold] = useState(100);
   const [highThreshold, setHighThreshold] = useState(200);
+  const [L2gradient, setL2gradient] = useState(false);
   const [ksize, setKsize] = useState(3);
   const [delta, setdelta] = useState(0);
 
@@ -54,6 +55,7 @@ const AlgorithmControl = ({ selectedAlgorithm }: AlgorithmControlProps) => {
       "algorithms-params",
       newLowThreshold,
       highThreshold,
+      L2gradient,
       ksize,
       delta
     );
@@ -68,6 +70,19 @@ const AlgorithmControl = ({ selectedAlgorithm }: AlgorithmControlProps) => {
       "algorithms-params",
       lowThreshold,
       newHighThreshold,
+      L2gradient,
+      ksize,
+      delta
+    );
+  };
+
+  const handleL2gradientChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setL2gradient(Number(e.target.value) ? true : false);
+    window.electronAPI.algorithmsParmas(
+      "algorithms-params",
+      lowThreshold,
+      highThreshold,
+      L2gradient,
       ksize,
       delta
     );
@@ -79,6 +94,7 @@ const AlgorithmControl = ({ selectedAlgorithm }: AlgorithmControlProps) => {
       "algorithms-params",
       lowThreshold,
       highThreshold,
+      L2gradient,
       ksize,
       delta
     );
@@ -90,6 +106,7 @@ const AlgorithmControl = ({ selectedAlgorithm }: AlgorithmControlProps) => {
       "algorithms-params",
       lowThreshold,
       highThreshold,
+      L2gradient,
       ksize,
       delta
     );
@@ -117,6 +134,16 @@ const AlgorithmControl = ({ selectedAlgorithm }: AlgorithmControlProps) => {
             onChange={handleHighThresholdChange}
           />
           {highThreshold}
+          <SliderLabel>L2gradient</SliderLabel>
+          <Slider
+            type="range"
+            min={0}
+            max={1}
+            step={1}
+            value={L2gradient ? 1 : 0}
+            onChange={handleL2gradientChange}
+          />
+          {L2gradient ? "True" : "False"}
         </>
       ) : (
         <>

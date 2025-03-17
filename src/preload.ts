@@ -8,7 +8,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   toggleCamera: (channel: string, cameraStatus: boolean, cameraIndex: number) => ipcRenderer.send(channel, cameraStatus, cameraIndex),
   selectAlgorithm: (channel: string, algorithm: number) => ipcRenderer.send(channel, algorithm),
-  algorithmsParmas: (channel: string, lowThreshold: number, highThreshold: number, ksize: number, delta: number) => ipcRenderer.send(channel, lowThreshold, highThreshold, ksize, delta),
+  algorithmsParmas: (channel: string, lowThreshold: number, highThreshold: number, L2gradient: boolean, ksize: number, delta: number) => 
+    ipcRenderer.send(channel, lowThreshold, highThreshold, L2gradient, ksize, delta),
   saveImage: (channel: string, base64Data: string) => ipcRenderer.send(channel, base64Data ),
   onStatusMessageUpdate: (callback: (data: { status: string }) => void) => {
     ipcRenderer.on("status-updated", (_event: IpcRendererEvent, data: { status: string }) => {

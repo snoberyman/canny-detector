@@ -1,4 +1,3 @@
-// camera.cpp
 #include <iostream>
 #include <napi.h>
 #include <opencv2/opencv.hpp>
@@ -6,29 +5,38 @@
 #include <mutex>
 #include <atomic>
 #include <vector>
+#include <queue>
+#include <condition_variable>
 #include "utils.h"
 
-Napi::ThreadSafeFunction tsfn;       // Thread-safe function: provides APIs for threads to communicate with the addon's main thread to invoke JavaScript functions on their behalf.
 std::atomic<bool> streaming = false; // Use atomic for thread safety (ensures no race conditions occur, if multiple threads modify the variable)
-cv::VideoCapture cap;                // Open the default camera
-std::mutex cap_mutex;                // Mutex to protect access to `cap`
+Napi::ThreadSafeFunction tsfn;       // Thread-safe function: provides APIs for threads to communicate with the addon's main thread to invoke JavaScript functions on their behalf.
 std::thread streamThread;            // Worker thread
+cv::VideoCapture cap;                // Open the camera
+std::queue<cv::Mat> frameQueue;      // queue that stores the frames captured
+std::condition_variable queueCond;   // used for thread synchronization. Notifies the processing threads when new frame is avilable
+std::mutex cap_mutex;                // Mutex to protect access to `cap`
+std::mutex queue_mutex;              // Mutex to protect access to `frameQueue`
+std::mutex params_mutex;             // Mutex to protect access to `parameters`
+
 int selectedAlgorithm = 0;
-int lowThreshold = 100;
-int highThreshold = 200;
+int lowThreshold = 100;  // canny low threshold (Weak edge threshold)
+int highThreshold = 200; // canny high threshold (Strong edge threshold)
+int apertureSize = 3;    // Kernel size for Sobel filter
+bool L2gradient = false; // Use Euclidean norm for gradient
 int ksize = 3;
 int delta = 0;
 
 /**
- * @brief  Responsible for streaming frames to Electrons' node main process.
- *         Uses a thread safe function to send each frame as base64 string, through a non-blocking JS callback approach.
+ * @brief  Responsible for capturing frames from camera based on camera index parameter.
+ *         Once a frame is captured, it is added to a frame queue, then this thread notifies waiting processing threads.
  *
  * @param  env    JS environment variable
  * @param  index  the selected camera index
  * @return void
  *
  */
-void StreamCamera(Napi::Env *env, int index) // , int index
+void CaptureFrames(Napi::Env *env, int index)
 {
     {
         std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to `cap`
@@ -63,49 +71,89 @@ void StreamCamera(Napi::Env *env, int index) // , int index
         }
 
         if (frame.empty())
-        {
-            std::cerr << "Error: Cannot grab a frame" << std::endl;
             continue;
-        }
-        /********************************************************************************** */
-        if (selectedAlgorithm == 0) // canny
-        {
-            cv::Mat gray_frame;
-            cv::cvtColor(frame, gray_frame, cv::COLOR_BGR2GRAY);
-            cv::Canny(gray_frame, edges, lowThreshold, highThreshold); // low threshold and hight threshold
-        }
-        else if (selectedAlgorithm == 1) // sobel edges
-        {
-            cv::Mat grad_x, grad_y;                                   // k-size and delta
-            cv::Sobel(frame, grad_x, CV_8U, 1, 0, ksize, 1.0, delta); // X gradient
-            cv::Sobel(frame, grad_y, CV_8U, 0, 1, ksize, 1.0, delta); // Y gradient
 
-            cv::addWeighted(grad_x, 0.5, grad_y, 0.5, 0, edges); // Combine X and Y gradients
-        }
-        else if (selectedAlgorithm == 2) // laplacian_edges
+        // Push frame into queue
         {
-            cv::Laplacian(frame, edges, CV_8U, ksize, 1.0, delta); // k-size and delta
+            std::lock_guard<std::mutex> lock(queue_mutex);
+            frameQueue.push(frame);
+        }
+        queueCond.notify_one(); // wake up on waiting thread
+    }
+}
+
+/**
+ * @brief  Responsible for processing captured frames and streaming them to Electrons' node main process.
+ *         Uses a thread safe function to send each frame as base64 string, through a non-blocking JS callback approach.
+ *
+ * @param  none
+ * @return void
+ *
+ */
+void ProcessFrames()
+{
+    while (streaming)
+    {
+        cv::Mat frame;
+        {
+            std::unique_lock<std::mutex> lock(queue_mutex);
+            queueCond.wait(lock, []
+                           { return !frameQueue.empty() || !streaming; }); // waits for another thread to call queueCond.notify_one() to wake up, then check the conditions after waking up
+
+            if (!streaming)
+                return;
+
+            frame = frameQueue.front(); // retrieve the next frame from frameQueue
+            frameQueue.pop();           // Remove the next frame from the queue
+        }
+
+        // Process Frame
+        cv::Mat edges;
+        int localLowThreshold;
+        int localHighThreshold;
+        bool localL2gradient;
+        int localKsize;
+        int localDelta;
+        /********************************************************************************** */
+        { // Critical section (locked)
+            std::lock_guard<std::mutex> lock(params_mutex);
+            localLowThreshold = lowThreshold;
+            localHighThreshold = highThreshold;
+            localL2gradient = L2gradient;
+            localKsize = ksize;
+            localDelta = delta;
+
+            if (selectedAlgorithm == 0) // Canny
+            {
+                cv::Mat gray_frame;
+                cv::cvtColor(frame, gray_frame, cv::COLOR_BGR2GRAY);
+                cv::Canny(gray_frame, edges, localLowThreshold, localHighThreshold, 3, localL2gradient);
+            }
+            else if (selectedAlgorithm == 1) // Sobel
+            {
+                cv::Mat grad_x, grad_y;
+                cv::Sobel(frame, grad_x, CV_8U, 1, 0, localKsize, 1.0, localDelta);
+                cv::Sobel(frame, grad_y, CV_8U, 0, 1, localKsize, 1.0, localDelta);
+                cv::addWeighted(grad_x, 0.5, grad_y, 0.5, 0, edges);
+            }
+            else if (selectedAlgorithm == 2) // Laplacian
+            {
+                cv::Laplacian(frame, edges, CV_8U, localKsize, 1.0, localDelta);
+            }
         }
         /********************************************************************************** */
-        // Convert frame to Base64
+        // Send to JavaScript
         std::string base64Frame = MatToBase64(edges);
-        // tsfn: ensures that calls from a worker thread to the JavaScript environment are safe (Node is single-threaded)
         tsfn.NonBlockingCall([base64Frame](Napi::Env env, Napi::Function jsCallback)
                              { jsCallback.Call({Napi::String::New(env, base64Frame)}); });
     }
-
-    {
-        std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to cap
-        cap.release();                               // Release the camera
-    }
-
-    std::cout << "Worker thread stopped and cleaned up." << std::endl;
 }
 
 /**
  * @brief  Responsible for initializing and starting the camera stream
  *
  * @param  info    JavaScript callback function, recieved from Electrons' node main process.
+ *
  * @return string  return back a message indicating the status
  *
  */
@@ -138,18 +186,24 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
 
     int index = info[1].As<Napi::Number>().Int32Value(); // get camera index passed through the callback
     streaming = true;
-    // Start the streaming in a separate thread
-    streamThread = std::thread(StreamCamera, &env, index); // index
-    // streamThread.detach();                        // Detach the thread to run independently
+    // Start the streaming thread (1 worker)
+    streamThread = std::thread(CaptureFrames, &env, index); // index
 
+    // Start processing threads (2 workers)
+    for (int i = 0; i < 2; i++)
+    {
+        std::thread(ProcessFrames).detach(); // Detach the thread to run independently
+    }
     return Napi::String::New(env, "Streaming frames started!");
 }
 
 /**
  * @brief  Responsible for stopping the camera stream and releasing the worker thread
  *
- * @param  info    JavaScript callback function, recieved from Electrons' node main process.
- * @return string  return back a message indicating the status
+ * @param  info.Env() JS environment variable
+ * @param  info       JavaScript callback function, recieved from Electrons' node main process.
+ *
+ * @return string     return back a message indicating the status
  *
  */
 Napi::Value StopStreaming(const Napi::CallbackInfo &info)
@@ -158,14 +212,10 @@ Napi::Value StopStreaming(const Napi::CallbackInfo &info)
     Napi::Env env = info.Env();
 
     if (!streaming)
-    {
         return Napi::String::New(env, "Streaming is not running!");
-    }
     streaming = false;
     if (streamThread.joinable())
-    {
         streamThread.join(); // Wait for the worker thread to finish
-    }
 
     {
         std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to `cap`
@@ -175,7 +225,7 @@ Napi::Value StopStreaming(const Napi::CallbackInfo &info)
         }
     }
 
-    tsfn.Release();
+    tsfn.Release(); // release threadsafe function
 
     return Napi::String::New(env, "Streaming stopped! Worker thread is released.");
 }
@@ -183,8 +233,9 @@ Napi::Value StopStreaming(const Napi::CallbackInfo &info)
 /**
  * @brief  Responsible for getting indexes of avaialble cameras
  *
- * @param  none
- * @return Array   return an array of integers for camera indexes
+ * @param  info.Env() JS environment variable
+ *
+ * @return Array      return an array of integers for camera indexes
  *
  */
 Napi::Array GetAvailableCameraIndexes(const Napi::CallbackInfo &info)
@@ -195,17 +246,19 @@ Napi::Array GetAvailableCameraIndexes(const Napi::CallbackInfo &info)
 
     for (size_t i = 0; i < cameraIndexes.size(); i++)
     {
-        result[i] = Napi::Number::New(env, cameraIndexes[i]); // Fill the array with camera indexes
+        result[i] = Napi::Number::New(env, cameraIndexes[i]); // Fill the result array with camera indexes
     }
 
-    return result; // Return the array of available indexes
+    return result;
 }
 
 /**
  * @brief  Responsible for updating selected algorithm index
  *
- * @param  info[1]   holds the algorithm's index selected from the front end
- * @return String    return message
+ * @param  info.Env() JS environment variable
+ * @param  info[1]    holds the algorithm's index selected from the front end
+ *
+ * @return String     return message
  *
  */
 Napi::String SetSelecteAlgorithm(const Napi::CallbackInfo &info)
@@ -219,20 +272,27 @@ Napi::String SetSelecteAlgorithm(const Napi::CallbackInfo &info)
 /**
  * @brief  Responsible for updating algorithms parameters
  *
- * @param  info[1]  Canny low threshold: any pixels below this value (gradient magnitude) are discarded (not edges)
- * @param  info[2]  Canny high threshold:  any pixels with above this value are considered strong edges.   (edges between thresholds are weaker edges)
- * @param  info[3]  Kernel size: the size of the Gaussian blurring filter. Smaller values capture fine edges, and higher values produce thicker edges.
- * @param  info[4]  delta: Shifts gradient values
- * @return String    return message
+ * @param  info.Env() JS environment variable
+ * @param  info[1]    Canny low threshold: any pixels below this value (gradient magnitude) are discarded (not edges)
+ * @param  info[2]    Canny high threshold:  any pixels with above this value are considered strong edges.   (edges between thresholds are weaker edges)
+ * @param  info[3]    Kernel size: the size of the Gaussian blurring filter. Smaller values capture fine edges, and higher values produce thicker edges.
+ * @param  info[4]    delta: Shifts gradient values
+ *
+ * @return String     return message
  *
  */
 Napi::String SetAlgorithmsParams(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
-    lowThreshold = info[1].As<Napi::Number>().Int32Value();
-    highThreshold = info[2].As<Napi::Number>().Int32Value();
-    ksize = info[3].As<Napi::Number>().Int32Value();
-    delta = info[4].As<Napi::Number>().Int32Value();
+    {
+        std::lock_guard<std::mutex> lock(params_mutex);
+
+        lowThreshold = info[1].As<Napi::Number>().Int32Value();
+        highThreshold = info[2].As<Napi::Number>().Int32Value();
+        L2gradient = info[3].As<Napi::Boolean>();
+        ksize = info[4].As<Napi::Number>().Int32Value();
+        delta = info[5].As<Napi::Number>().Int32Value();
+    }
 
     return Napi::String::New(env, "Algorithm controlls are set!"); // Return the array of available indexes
 }

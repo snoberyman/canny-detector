@@ -4,7 +4,7 @@ export interface ElectronAPI {
   onWsPort: (callback: (port: number) => void) => void;
   toggleCamera: (channel: string, cameraStatus: boolean, cameraIndex: number,algorithm: number) => void;
   selectAlgorithm: (channel: string, algorithm: number) => void;
-  algorithmsParmas: (channel: string, lowThreshold: number, highThreshold: number, ksize: number, delta: number) => void;
+  algorithmsParmas: (channel: string, lowThreshold: number, highThreshold: number, L2gradient: boolean, ksize: number, delta: number) => void;
   saveImage: (channel: string, base64Data: string) => Promise<string>;
   onStatusMessageUpdate: (callback: (data: { status: string }) => void) => void;
   on: (channel: string, listener: (_:IpcRendererEvent, message:string) => void) => void 
