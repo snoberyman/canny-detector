@@ -48,14 +48,23 @@ app.whenReady().then(() => {
 
   mainWindow.loadURL("http://localhost:5173"); // Load React (Vite) frontend
 
+  mainWindow.on("close" , (event) => {
+    const stopAndCloseApp = async () => {
+      try {
+        await addon.stopStreaming(); // Wait for stopStreaming to finish
+          if (process.platform !== "darwin") {
+            app.quit();
+          }
+      } catch (err) {
+        console.error("Error stopping the stream:", err);
+      }
+    };
+
+    stopAndCloseApp();
+  })
+
   // Open the Developer Tools window. dev only
   mainWindow.webContents.openDevTools({'mode':"detach"});
-});
-
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
 });
 
 
@@ -178,9 +187,9 @@ ipcMain.on("save-image", async (event, base64Data) => {
  * Handle update status message on the main process, the send it to the renderer process.
  *  */ 
 function updateStatus() {
-    if (mainWindow) {
-      mainWindow.webContents.send("status-updated", { status });
-    }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("status-updated", { status });
+  }
 }
 
 /**

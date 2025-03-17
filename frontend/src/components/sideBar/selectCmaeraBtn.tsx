@@ -1,6 +1,8 @@
 import styled from "styled-components";
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState, useEffect, useRef } from "react";
 import { useAppContext } from "../../context/useAppContext";
+
+import { Tooltip } from "react-tooltip";
 
 interface BtnProps {
   $noCameras?: number;
@@ -48,7 +50,7 @@ const Dropdown = styled.div`
   padding: 10px;
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
   width: 100px;
-  top: 40px; /* Position dropdown below the button */
+  top: 90px; /* Position dropdown below the button */
   left: 5px;
   z-index: 100;
 `;
@@ -71,15 +73,36 @@ const SelectCmaeraBtn = ({ icon }: SelectCmaeraBtnProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false); // Manage dropdown visibility
   const [options, setOptions] = useState<number[]>([]);
   const { cameraIndex, setCameraIndex, addLogMessage } = useAppContext();
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
 
   const handleOptionSelect = (option: number) => {
-    setIsDropdownOpen(false); // Close dropdown after selection
+    setIsDropdownOpen(false); // close dropdonw
     setCameraIndex(option);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // handle close dropdown when clicking outisde
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof cameraIndex === "number") {
@@ -116,12 +139,21 @@ const SelectCmaeraBtn = ({ icon }: SelectCmaeraBtnProps) => {
   }, [addLogMessage]);
 
   return (
-    <div style={{ position: "relative" }}>
-      <Btn onClick={toggleDropdown} $noCameras={options.length}>
-        {icon} {/* Render icon if provided */}
-      </Btn>
+    <>
+      <Tooltip anchorSelect=".SelectCmaeraBtn" place="right" variant="light">
+        Select camera
+      </Tooltip>
+      <a className="SelectCmaeraBtn">
+        <Btn
+          ref={buttonRef}
+          onClick={toggleDropdown}
+          $noCameras={options.length}
+        >
+          {icon} {/* Render icon if provided */}
+        </Btn>
+      </a>
       {isDropdownOpen && (
-        <Dropdown>
+        <Dropdown ref={dropdownRef}>
           {options.map((option, index) => (
             <DropdownItem
               key={index}
@@ -132,7 +164,7 @@ const SelectCmaeraBtn = ({ icon }: SelectCmaeraBtnProps) => {
           ))}
         </Dropdown>
       )}
-    </div>
+    </>
   );
 };
 

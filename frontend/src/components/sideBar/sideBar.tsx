@@ -1,10 +1,13 @@
 import styled from "styled-components";
-import ToggleCmaeraBtnProps from "./toggleCmaeraBtn";
+import { Tooltip } from "react-tooltip";
+import { useEffect } from "react";
+
 import { FaCamera, FaRecordVinyl, FaImage } from "react-icons/fa6";
 import { useAppContext } from "../../context/useAppContext";
+
 import SelectCmaeraBtn from "./selectCmaeraBtn";
 import CaptureCmaeraBtn from "./captureCameraBtn";
-import { useEffect } from "react";
+import ToggleCmaeraBtn from "./toggleCmaeraBtn";
 
 interface SidebarProps {
   bgColor?: string; // bgColor is optional and should be a string (e.g., hex color)
@@ -69,19 +72,33 @@ const SideBar = ({ videoStream }: { videoStream: string }) => {
   return (
     <>
       <SidebarContainer>
-        <ToggleCmaeraBtnProps
-          icon={<FaRecordVinyl />}
-          onClick={handleToggleCamera}
-          $cameraIndex={cameraIndex}
-        ></ToggleCmaeraBtnProps>
+        <Tooltip anchorSelect=".ToggleCmaeraBtn" place="right" variant="light">
+          Satrt/Stop streaming
+        </Tooltip>
+
+        <Tooltip anchorSelect=".CaptureCmaeraBtn" place="right" variant="light">
+          Capture and save image
+        </Tooltip>
+
+        <a className="ToggleCmaeraBtn">
+          <ToggleCmaeraBtn
+            icon={<FaRecordVinyl />}
+            onClick={handleToggleCamera}
+            $cameraIndex={cameraIndex}
+          ></ToggleCmaeraBtn>
+        </a>
+
         <SelectCmaeraBtn icon={<FaCamera />}></SelectCmaeraBtn>
+
         <hr></hr>
-        <CaptureCmaeraBtn
-          icon={<FaImage />}
-          onClick={handleCaptureImage}
-          $cameraIndex={cameraIndex}
-          $cameraStatus={cameraStatus}
-        ></CaptureCmaeraBtn>
+        <a className="CaptureCmaeraBtn">
+          <CaptureCmaeraBtn
+            icon={<FaImage />}
+            onClick={handleCaptureImage}
+            $cameraIndex={cameraIndex}
+            $cameraStatus={cameraStatus}
+          ></CaptureCmaeraBtn>
+        </a>
       </SidebarContainer>
     </>
   );
