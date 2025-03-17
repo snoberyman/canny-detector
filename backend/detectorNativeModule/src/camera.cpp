@@ -2,6 +2,7 @@
 #include <napi.h>
 #include <opencv2/opencv.hpp>
 #include <thread>
+#include <memory>
 #include <mutex>
 #include <atomic>
 #include <vector>
@@ -9,20 +10,19 @@
 #include <condition_variable>
 #include "utils.h"
 
-std::atomic<bool> streaming = false; // Use atomic for thread safety (ensures no race conditions occur, if multiple threads modify the variable)
-Napi::ThreadSafeFunction tsfn;       // Thread-safe function: provides APIs for threads to communicate with the addon's main thread to invoke JavaScript functions on their behalf.
-std::thread streamThread;            // Worker thread
-cv::VideoCapture cap;                // Open the camera
-std::queue<cv::Mat> frameQueue;      // queue that stores the frames captured
-std::condition_variable queueCond;   // used for thread synchronization. Notifies the processing threads when new frame is avilable
-std::mutex cap_mutex;                // Mutex to protect access to `cap`
-std::mutex queue_mutex;              // Mutex to protect access to `frameQueue`
-std::mutex params_mutex;             // Mutex to protect access to `parameters`
+std::atomic<bool> streaming = false;       // Use atomic for thread safety (ensures no race conditions occur, if multiple threads modify the variable)
+Napi::ThreadSafeFunction tsfn;             // Thread-safe function: provides APIs for threads to communicate with the addon's main thread to invoke JavaScript functions on their behalf.
+std::unique_ptr<std::thread> streamThread; // Worker thread
+cv::VideoCapture cap;                      // Open the camera
+std::queue<cv::Mat> frameQueue;            // queue that stores the frames captured
+std::condition_variable queueCond;         // used for thread synchronization. Notifies the processing threads when new frame is avilable
+std::mutex cap_mutex;                      // Mutex to protect access to `cap`
+std::mutex queue_mutex;                    // Mutex to protect access to `frameQueue`
+std::mutex params_mutex;                   // Mutex to protect access to `parameters`
 
 int selectedAlgorithm = 0;
 int lowThreshold = 100;  // canny low threshold (Weak edge threshold)
 int highThreshold = 200; // canny high threshold (Strong edge threshold)
-int apertureSize = 3;    // Kernel size for Sobel filter
 bool L2gradient = false; // Use Euclidean norm for gradient
 int ksize = 3;
 int delta = 0;
@@ -187,12 +187,14 @@ Napi::String StartStreaming(const Napi::CallbackInfo &info)
     int index = info[1].As<Napi::Number>().Int32Value(); // get camera index passed through the callback
     streaming = true;
     // Start the streaming thread (1 worker)
-    streamThread = std::thread(CaptureFrames, &env, index); // index
+    streamThread = std::make_unique<std::thread>(CaptureFrames, &env, index);
 
     // Start processing threads (2 workers)
     for (int i = 0; i < 2; i++)
     {
-        std::thread(ProcessFrames).detach(); // Detach the thread to run independently
+        // std::thread(ProcessFrames).detach();
+        auto thread_ptr = std::make_shared<std::thread>(ProcessFrames); // shared pointer
+        thread_ptr->detach();                                           // Detaching the thread pointed to by thread_ptr
     }
     return Napi::String::New(env, "Streaming frames started!");
 }
@@ -210,12 +212,13 @@ Napi::Value StopStreaming(const Napi::CallbackInfo &info)
 {
     std::cout << "stop cout: " << streaming;
     Napi::Env env = info.Env();
+    std::queue<cv::Mat> empty;
 
     if (!streaming)
         return Napi::String::New(env, "Streaming is not running!");
     streaming = false;
-    if (streamThread.joinable())
-        streamThread.join(); // Wait for the worker thread to finish
+    if (streamThread && streamThread->joinable())
+        streamThread->join(); // Wait for the worker thread to finish
 
     {
         std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to `cap`
@@ -224,8 +227,8 @@ Napi::Value StopStreaming(const Napi::CallbackInfo &info)
             cap.release(); // Release the camera
         }
     }
-
-    tsfn.Release(); // release threadsafe function
+    std::swap(frameQueue, empty); // empt frames queue
+    tsfn.Release();               // release threadsafe function
 
     return Napi::String::New(env, "Streaming stopped! Worker thread is released.");
 }
