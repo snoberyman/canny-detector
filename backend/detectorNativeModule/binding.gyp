@@ -4,7 +4,8 @@
       "target_name": "camera",
       "sources": [
         "src/camera.cpp",
-        "src/base64_utils.cpp"
+        "src/base64_utils.cpp",
+        "src/utils.cpp"
       ],
       'include_dirs': ["<!(node -p \"require('node-addon-api').include_dir\")", "C:/opencv/build/include"],
       "libraries": [

@@ -151,8 +151,8 @@ ipcMain.on("toggle-camera", (event, cameraStatus, cameraIndex) => {
       updateStatus();
 
       ws.on("close", () => {
-        status = "Client disconnected.";
-        updateStatus();
+        // status = "Client disconnected.";
+        // updateStatus();
       });
     });
   }
