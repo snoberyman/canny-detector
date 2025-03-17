@@ -1,8 +1,9 @@
 import styled from "styled-components";
-import SideBtn from "./sideBtn";
-import { FaCamera, FaRecordVinyl } from "react-icons/fa6";
+import ToggleCmaeraBtnProps from "./toggleCmaeraBtn";
+import { FaCamera, FaRecordVinyl, FaImage } from "react-icons/fa6";
 import { useAppContext } from "../../context/useAppContext";
-import SideBtnDd from "./sideBtnDd";
+import SelectCmaeraBtn from "./selectCmaeraBtn";
+import CaptureCmaeraBtn from "./captureCameraBtn";
 import { useEffect } from "react";
 
 interface SidebarProps {
@@ -18,8 +19,9 @@ const SidebarContainer = styled.div<SidebarProps>`
   background-color: #004643;
 `;
 
-const SideBar = () => {
-  const { cameraStatus, setCameraStatus, cameraIndex } = useAppContext();
+const SideBar = ({ videoStream }: { videoStream: string }) => {
+  const { cameraStatus, setCameraStatus, cameraIndex, addLogMessage } =
+    useAppContext();
 
   const algorithm = 0;
   useEffect(() => {
@@ -31,8 +33,8 @@ const SideBar = () => {
     setCameraStatus(newStatus); // Update the state
     if (typeof cameraIndex == "number") {
       // Handle the case where cameraIndex is invalid or not set
-      window.electronAPI.startCamera(
-        "start-camera",
+      window.electronAPI.toggleCamera(
+        "toggle-camera",
         newStatus,
         cameraIndex,
         algorithm
@@ -40,15 +42,46 @@ const SideBar = () => {
     }
   };
 
+  const handleCaptureImage = async () => {
+    if (!videoStream) return;
+
+    setCameraStatus(false); // Set camera status to false while saving the imag
+
+    // Send the frame to the main process
+    window.electronAPI.saveImage("save-image", videoStream);
+  };
+
+  useEffect(() => {
+    const handleImageSaved = (_: unknown, message: string) => {
+      addLogMessage([message, new Date().toLocaleTimeString()]);
+      setCameraStatus(true); // Set camera status back to true
+    };
+
+    // Add listener
+    window.electronAPI.on("image-saved", handleImageSaved);
+
+    // Clean up the listener on unmount
+    return () => {
+      window.electronAPI.removeAllListeners("image-saved");
+    };
+  }, [setCameraStatus, addLogMessage]);
+
   return (
     <>
       <SidebarContainer>
-        <SideBtn
+        <ToggleCmaeraBtnProps
           icon={<FaRecordVinyl />}
           onClick={handleToggleCamera}
           $cameraIndex={cameraIndex}
-        ></SideBtn>
-        <SideBtnDd icon={<FaCamera />} onClick={() => alert("select camera")} />
+        ></ToggleCmaeraBtnProps>
+        <SelectCmaeraBtn icon={<FaCamera />}></SelectCmaeraBtn>
+        <hr></hr>
+        <CaptureCmaeraBtn
+          icon={<FaImage />}
+          onClick={handleCaptureImage}
+          $cameraIndex={cameraIndex}
+          $cameraStatus={cameraStatus}
+        ></CaptureCmaeraBtn>
       </SidebarContainer>
     </>
   );

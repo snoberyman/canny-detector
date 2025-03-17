@@ -26,9 +26,14 @@ const VideoImage = styled.img`
   display: block;
 `;
 
-const MainDisplay = () => {
+const MainDisplay = ({
+  videoStream,
+  setVideoStream,
+}: {
+  videoStream: string;
+  setVideoStream: React.Dispatch<React.SetStateAction<string>>;
+}) => {
   const { cameraStatus, addLogMessage } = useAppContext(); // Get the latest message
-  const [videoStream, setVideoStream] = useState<string>("");
   const [fps, setFps] = useState<string>("0");
 
   useEffect(() => {
@@ -86,7 +91,7 @@ const MainDisplay = () => {
     return () => {
       window.electronAPI.removeAllListeners("ws-port");
     };
-  }, [cameraStatus, addLogMessage]);
+  }, [cameraStatus, addLogMessage, setVideoStream]);
 
   // Log videoStream whenever it changes
   useEffect(() => {}, [videoStream]); // This effect runs when videoStream changes

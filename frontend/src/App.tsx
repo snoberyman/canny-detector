@@ -11,6 +11,7 @@ function App() {
   // const [message, setMessage] = useState("");
   const { logMessages, addLogMessage } = useAppContext();
   const [selectedAlgorithm, setSelectedAlgorithm] = useState(0);
+  const [videoStream, setVideoStream] = useState<string>("");
 
   // const prevStatusRef = useRef<string>(null);
 
@@ -31,8 +32,8 @@ function App() {
 
   return (
     <div style={{ textAlign: "center" }}>
-      <SideBar />
-      <MainDisplay />
+      <SideBar videoStream={videoStream} />
+      <MainDisplay videoStream={videoStream} setVideoStream={setVideoStream} />
       <AlgorithmSelect
         selectedAlgorithm={selectedAlgorithm}
         setSelectedAlgorithm={setSelectedAlgorithm}

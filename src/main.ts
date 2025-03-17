@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, dialog  } from "electron";
 import path from "path";
 import os from "os";
+const fs = require("fs");
 import WebSocket, { WebSocketServer } from "ws";
 
 // load the native (cpp) module (canny detector logic)
@@ -66,9 +67,11 @@ ipcMain.on("algorithms-params", (event, lowThreshold, highThreshold, ksize, delt
   addon.setAlgorithmsParams(() => {}, lowThreshold, highThreshold, ksize, delta);
 });
 
-
-ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
-  // listen to channel start-camera", when a new message arrives, call backfunction would be called
+/**
+ * Handle captrung a frame frot the stream and save it as jpg
+ *  */ 
+ipcMain.on("toggle-camera", (event, cameraStatus, cameraIndex) => {
+  // listen to channel toggle-camera, when a new message arrives, call backfunction would be called
   if (!cameraStatus) {
     status = addon.stopStreaming(); // release camera from the thread
     updateStatus();
@@ -146,9 +149,33 @@ ipcMain.on("start-camera", (event, cameraStatus, cameraIndex) => {
   }
 });
 
+/**
+ * Handle captrung a frame frot the stream and save it as jpg
+ *  */ 
+ipcMain.on("save-image", async (event, base64Data) => {
+  try {
+    const { filePath } = await dialog.showSaveDialog({
+      title: "Save Image",
+      defaultPath: path.join(app.getPath("pictures"), `captured-${Date.now()}.jpg`),
+      filters: [{ name: "Images", extensions: ["jpg"] }],
+    });
+
+    if (filePath) {
+      // Save the image file
+      await fs.promises.writeFile(filePath, base64Data, "base64");
+      event.sender.send("image-saved", "Image saved successfully"); // Send success message
+    } else {
+      event.sender.send("image-saved", "Saving image canceled"); // Send error message if no file was selected
+    }
+  } catch (err : any) {
+    console.error("Failed to save image:", err);
+    event.sender.send("image-saved", `Failed to save image: ${err.message}`); // Send error message if something goes wrong
+  }
+});
+
 
 /**
- * Handle requests from frontend. communicate between main process and renderer process.
+ * Handle update status message on the main process, the send it to the renderer process.
  *  */ 
 function updateStatus() {
     if (mainWindow) {
@@ -156,7 +183,9 @@ function updateStatus() {
     }
 }
 
-
+/**
+ * Handle fetching available cams. This is invoked on the program startup.
+ *  */ 
 ipcMain.handle("fetchCams", async (): Promise<{ data: number[] }> => {
   let indexArray = addon.getAvailableCameraIndexes() 
   return { data: indexArray} 

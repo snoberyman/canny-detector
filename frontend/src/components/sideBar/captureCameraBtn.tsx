@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 
 interface BtnProps {
   $cameraIndex?: number;
+  $cameraStatus?: boolean;
 }
 
 const Btn = styled.button<BtnProps>`
@@ -18,13 +19,15 @@ const Btn = styled.button<BtnProps>`
   background-color: ${(props) =>
     props.$cameraIndex !== undefined &&
     props.$cameraIndex >= 0 &&
-    props.$cameraIndex <= 9
+    props.$cameraIndex <= 9 &&
+    props.$cameraStatus
       ? "white"
       : "gray"};
   pointer-events: ${(props) =>
     props.$cameraIndex !== undefined &&
     props.$cameraIndex >= 0 &&
-    props.$cameraIndex <= 9
+    props.$cameraIndex <= 9 &&
+    props.$cameraStatus
       ? ""
       : "none"};
 
@@ -38,24 +41,28 @@ const Btn = styled.button<BtnProps>`
   }
 `;
 
-interface SideBtnProps {
+interface CaptureCmaeraBtnProps {
   icon: ReactNode; // Icon component (optional)
   onClick?: () => void; // Click event handler (optional)
   $cameraIndex: number | undefined;
+  $cameraStatus: boolean;
 }
 
-const SideBtn = ({ icon, onClick, $cameraIndex }: SideBtnProps) => {
+const CaptureCmaeraBtn = ({
+  icon,
+  onClick,
+  $cameraIndex,
+  $cameraStatus,
+}: CaptureCmaeraBtnProps) => {
   return (
-    <Btn onClick={onClick} $cameraIndex={$cameraIndex}>
+    <Btn
+      onClick={onClick}
+      $cameraIndex={$cameraIndex}
+      $cameraStatus={$cameraStatus}
+    >
       {icon} {/* Render icon if provided */}
     </Btn>
   );
 };
 
-export default SideBtn;
-
-//***
-//
-
-//
-//  */
+export default CaptureCmaeraBtn;

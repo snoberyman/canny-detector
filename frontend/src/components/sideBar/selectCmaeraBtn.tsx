@@ -62,12 +62,12 @@ const DropdownItem = styled.div`
   }
 `;
 
-interface SideBtnProps {
+interface SelectCmaeraBtnProps {
   icon: ReactNode; // Icon component (optional)
   onClick?: () => void; // Click event handler (optional)
 }
 
-const SideBtnDd = ({ icon }: SideBtnProps) => {
+const SelectCmaeraBtn = ({ icon }: SelectCmaeraBtnProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false); // Manage dropdown visibility
   const [options, setOptions] = useState<number[]>([]);
   const { cameraIndex, setCameraIndex, addLogMessage } = useAppContext();
@@ -136,4 +136,4 @@ const SideBtnDd = ({ icon }: SideBtnProps) => {
   );
 };
 
-export default SideBtnDd;
+export default SelectCmaeraBtn;
