@@ -12,8 +12,11 @@ const addon = require(path.join(
   "detectorNativeModule",
   "build",
   "Release",
-  "camera.node"
+  "camera"
 ));
+
+const Camera = addon.Camera;
+const camera = new Camera();
 
 let mainWindow: BrowserWindow | null = null;
 let wss: WebSocketServer | null = null;
@@ -51,7 +54,7 @@ app.whenReady().then(() => {
   mainWindow.on("close" , (event) => {
     const stopAndCloseApp = async () => {
       try {
-        await addon.stopStreaming(); // Wait for stopStreaming to finish
+        await camera.stopStreaming(); // Wait for stopStreaming to finish
           if (process.platform !== "darwin") {
             app.quit();
           }
@@ -69,11 +72,11 @@ app.whenReady().then(() => {
 
 
 ipcMain.on("select-algorithm", (event, algorithm) => {
-  addon.setSelecteAlgorithm(() => {}, algorithm);
+  camera.selectAlgorithm(() => {}, algorithm);
 });
 
 ipcMain.on("algorithms-params", (event, lowThreshold, highThreshold, L2gradient, ksize, delta) => {
-  addon.setAlgorithmsParams(() => {}, lowThreshold, highThreshold, L2gradient, ksize, delta);
+  camera.setAlgorithmsParams(() => {}, lowThreshold, highThreshold, L2gradient, ksize, delta);
 });
 
 /**
@@ -82,7 +85,7 @@ ipcMain.on("algorithms-params", (event, lowThreshold, highThreshold, L2gradient,
 ipcMain.on("toggle-camera", (event, cameraStatus, cameraIndex) => {
   // listen to channel toggle-camera, when a new message arrives, call backfunction would be called
   if (!cameraStatus) {
-    status = addon.stopStreaming(); // release camera from the thread
+    status = camera.stopStreaming(); // release camera from the thread
     updateStatus();
     startCamera = false;
 
@@ -142,7 +145,7 @@ ipcMain.on("toggle-camera", (event, cameraStatus, cameraIndex) => {
       updateStatus();
 
       // Start camera streaming and receive frames
-      status = addon.startStreaming((frameBase64: string) => {
+      status = camera.startStreaming((frameBase64: string) => {
         // Relay the frame to the WebSocket client
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(frameBase64);
@@ -196,6 +199,6 @@ function updateStatus() {
  * Handle fetching available cams. This is invoked on the program startup.
  *  */ 
 ipcMain.handle("fetchCams", async (): Promise<{ data: number[] }> => {
-  let indexArray = addon.getAvailableCameraIndexes() 
+  let indexArray = camera.getAvailableCameraIndexes() 
   return { data: indexArray} 
 });

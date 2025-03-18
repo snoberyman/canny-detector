@@ -38,8 +38,8 @@ const MainDisplay = ({
 
   useEffect(() => {
     let lastTimestamp = performance.now(); // initial timestamp (milliseconds)
-    let frameCount = 0;
-    let fps = 0;
+    // let frameCount = 0;
+    // let fps = 0;
 
     // Ensure that the window.electronAPI from preload is available
     if (window.electronAPI && cameraStatus) {
@@ -63,9 +63,9 @@ const MainDisplay = ({
           // Calculate FPS (convert ms to seconds)
           if (timeDiff > 0) {
             const currentFPS = 1000 / timeDiff; // FPS = 1000ms / frame interval (taken in ms)
-            fps = (fps * frameCount + currentFPS) / (frameCount + 1); // Smoother  FPS with averaging, to prevent suddent spikes
-            frameCount++;
-            setFps(fps.toFixed());
+            // fps = (fps * frameCount + currentFPS) / (frameCount + 1); // Smoother  FPS with averaging, to prevent suddent spikes
+            // frameCount++;
+            setFps(currentFPS.toFixed());
           }
 
           // when client recieve message from server

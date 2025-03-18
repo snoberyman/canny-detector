@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import styled from "styled-components";
+import { useAppContext } from "../../context/useAppContext";
 
 // Styled Components
 const Container = styled.div`
@@ -42,6 +43,7 @@ interface AlgorithmControlProps {
 }
 // algorithms-params apertureSize, L2gradient,
 const AlgorithmControl = ({ selectedAlgorithm }: AlgorithmControlProps) => {
+  const { cameraStatus } = useAppContext();
   const [lowThreshold, setLowThreshold] = useState(100);
   const [highThreshold, setHighThreshold] = useState(200);
   const [L2gradient, setL2gradient] = useState(false);
@@ -112,7 +114,7 @@ const AlgorithmControl = ({ selectedAlgorithm }: AlgorithmControlProps) => {
     );
   };
 
-  return (
+  return cameraStatus ? (
     <Container>
       {selectedAlgorithm === 0 ? (
         <>
@@ -170,6 +172,8 @@ const AlgorithmControl = ({ selectedAlgorithm }: AlgorithmControlProps) => {
         </>
       )}
     </Container>
+  ) : (
+    ""
   );
 };
 
