@@ -4,6 +4,7 @@
 
 For testing the software, Windows installer has been built (check Releases tab)
 
+![App UI](https://i.postimg.cc/wT8FxZrz/Screenshot-canny-detector.png)
 [Watch live demo video here](https://streamable.com/rixg1g)
 
 ## Technology
