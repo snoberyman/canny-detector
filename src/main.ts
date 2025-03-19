@@ -32,6 +32,7 @@ const iconPath =
     ? path.join(__dirname, "../assets/icons/camera.icns") // macOS icon (.icns)
     : path.join(__dirname, "../assets/icons/camera.png"); // Linux icon (.png)
 
+
 // run electron app
 app.whenReady().then(() => {
   mainWindow = new BrowserWindow({
@@ -49,7 +50,13 @@ app.whenReady().then(() => {
     icon: iconPath, // Use the OS-specific icon
   });
 
-  mainWindow.loadURL("http://localhost:5173"); // Load React (Vite) frontend
+
+    // Load the built frontend
+    if (process.env.NODE_ENV === 'development') {
+      mainWindow.loadURL('http://localhost:5173'); // Dev mode
+    } else {
+      mainWindow.loadFile(path.join(__dirname, '../frontend/dist/renderer/index.html')); // Production mode 
+    }
 
   mainWindow.on("close" , (event) => {
     const stopAndCloseApp = async () => {
@@ -67,7 +74,7 @@ app.whenReady().then(() => {
   })
 
   // Open the Developer Tools window. dev only
-  mainWindow.webContents.openDevTools({'mode':"detach"});
+  // mainWindow.webContents.openDevTools({'mode':"detach"});
 });
 
 
@@ -148,7 +155,7 @@ ipcMain.on("toggle-camera", (event, cameraStatus, cameraIndex) => {
       status = camera.startStreaming((frameBase64: string) => {
         // Relay the frame to the WebSocket client
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(frameBase64);
+            ws.send(frameBase64);
         }
       },cameraIndex);  // , cameraIndex
       updateStatus();

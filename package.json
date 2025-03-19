@@ -1,31 +1,72 @@
 {
-  "name": "canny-detector",
-  "version": "1.0.0",
-  "description": "",
-  "main": "dist/main.js",
-  "scripts": {
-    "start": "concurrently \"npm run dev --prefix frontend\" \"npm run electron\"",
-    "dev": "vite --host",
-    "electron": "npm run build:ts && electron .",
-    "build": "vite build",
-    "build:ts": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@types/electron": "^1.6.12",
-    "@types/node": "^22.13.9",
-    "@types/ws": "^8.18.0",
-    "concurrently": "^9.1.2",
-    "electron": "^35.0.0",
-    "electron-builder": "^25.1.8",
-    "typescript": "^5.8.2"
-  },
-  "dependencies": {
-    "node-addon-api": "^8.3.1",
-    "react-icons": "^5.5.0",
-    "ws": "^8.18.1"
-  }
+    "scripts": {
+        "start": "concurrently \"npm run dev --prefix frontend\" \"npm run electron\"",
+        "dev": "vite --host",
+        "electron": "npm run build:ts && cross-env NODE_ENV=development electron .",
+        "clean": "rimraf -rf dist/* && rimraf app.asar",
+        "build": "npm run build:frontend && electron-builder",
+        "build:win": "cross-env NODE_ENV=production npm run build:ts && npm run build:frontend && electron-builder --win",
+        "build:mac": "cross-env NODE_ENV=production npm run build:ts && npm run build:frontend && electron-builder --mac",
+        "build:linux": "cross-env NODE_ENV=production npm run build:ts && npm run build:frontend && electron-builder --linux",
+        "build:frontend": "cd frontend && npm run build",
+        "build:ts": "tsc",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@types/electron": "^1.6.12",
+        "@types/node": "^22.13.9",
+        "@types/ws": "^8.18.0",
+        "concurrently": "^9.1.2",
+        "cross-env": "^7.0.3",
+        "electron": "^35.0.0",
+        "electron-builder": "^25.1.8",
+        "typescript": "^5.8.2"
+    },
+    "dependencies": {
+        "node-addon-api": "^8.3.1",
+        "react-icons": "^5.5.0",
+        "ws": "^8.18.1"
+    },
+    "name": "canny-detector",
+    "version": "1.0.0",
+    "description": "Live streaming edge detection output from camera",
+    "main": "dist/main.js",
+    "build": {
+        "appId": "com.yaman.canny",
+        "productName": "Canny Detector",
+ 
+        "directories": {
+            "output": "dist/electron"
+        },
+        "files": [
+            "!node_modules/electron/**/*",
+            "frontend/dist/renderer/**/*",
+            "dist/**/*",
+            "backend/detectorNativeModule/build/Release/**/*"
+        ],
+        "win": {
+            "target": "nsis",
+            "icon": "build/camera.ico",
+            "publisherName": "Yaman Sanobar"
+        },
+        "nsis": {
+            "oneClick": false,
+            "perMachine": true,
+            "allowToChangeInstallationDirectory": true
+          },
+        "mac": {
+            "target": "dmg",
+            "icon": "build/camera.icns",
+            "identity": "Yaman Sanobar"
+        },
+        "linux": {
+            "target": "AppImage",
+            "icon": "build/camera.png",
+            "maintainer": "Yaman Sanobar"
+        },
+        "asar": true
+    }
 }

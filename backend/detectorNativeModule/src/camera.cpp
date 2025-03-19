@@ -45,7 +45,7 @@ private:
             std::lock_guard<std::mutex> lock(cap_mutex); // Lock access to `cap`
 
 #ifdef _WIN32
-            cap.open(index, cv::CAP_DSHOW); // Windows (DirectShow)
+            cap.open(index, cv::CAP_MSMF); // Windows (DirectShow)
 #elif __APPLE__
             cap.open(index, cv::CAP_AVFOUNDATION); // macOS (AVFoundation)
 #elif __linux__
@@ -53,7 +53,8 @@ private:
 #else
             cap.open(index, cv::CAP_ANY); // Use any available backend
 #endif
-
+            cap.set(cv::CAP_PROP_FPS, 60);
+            cap.set(cv::CAP_PROP_BUFFERSIZE, 1);
             cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
             cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
 
