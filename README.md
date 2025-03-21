@@ -1,8 +1,8 @@
 ﻿# Canny Detector
 
-### Real-Time Video Canny (Sobel, and Laplacian) edge detectors.
+### A desktop application for real-time Video edge detectors (Canny, Sobel, and Laplacian). 
 
-For testing the software, Windows installer has been built (check Releases tab)
+The application detects connected cameras using native modules (C++) and streams processed frames to the user interface. It is optimized for Windows only. For testing, a Windows installer has been built (check the Releases tab).
 
 ![App UI](https://i.postimg.cc/wT8FxZrz/Screenshot-canny-detector.png)
 [Watch live demo video here](https://streamable.com/rixg1g)
